@@ -1,4 +1,4 @@
-import { lerp } from "../lib/NLib/nmath";
+import { lerp } from "./lib/NLib/nmath";
 
 export function randify(a: number): number {
   // the logic here is arbitrary; it just takes an input and mixes it into something unpredictable

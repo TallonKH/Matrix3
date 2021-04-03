@@ -1,13 +1,11 @@
-export function identity(a) {
+type CompareFunc<T> = (a: T, b: T) => number;
+
+export function identity<T>(a: T): T {
 	return a;
 }
 
-function subtract(a, b) {
-	return a - b;
-}
-
 /** true if, for every i, a[i] === b[i] */
-export function arraysSame(a, b) {
+export function arraysSame<T>(a: Array<T>, b: Array<T>): boolean {
 	if (a === null || b === null) {
 		return false;
 	}
@@ -24,7 +22,7 @@ export function arraysSame(a, b) {
 	return true;
 }
 
-export function findSorted(array, item, compareFunc = subtract) {
+export function findSorted<T>(array: Array<T>, item: T, compareFunc: CompareFunc<T>): number {
 	let min = 0;
 	let max = array.length;
 	let mid;
@@ -35,10 +33,10 @@ export function findSorted(array, item, compareFunc = subtract) {
 		if (min >= max) {
 			return -1;
 		}
-		
+
 		midItem = array[mid];
 		const diff = compareFunc(midItem, item);
-		if(diff === 0){
+		if (diff === 0) {
 			return mid;
 		}
 		if (diff > 0) {
@@ -51,15 +49,15 @@ export function findSorted(array, item, compareFunc = subtract) {
 	}
 }
 
-export function removeSorted(array, item, compareFunc = subtract){
+export function removeSorted<T>(array: Array<T>, item: T, compareFunc: (a: T, b: T) => number): number {
 	const found = findSorted(array, item, compareFunc);
-	if(found >= 0){
+	if (found >= 0) {
 		array.splice(found, 1);
 	}
 	return found;
 }
 
-export function insertSorted(array, item, compareFunc = subtract) {
+export function insertSorted<T>(array: Array<T>, item: T, compareFunc: (a: T, b: T) => number): number {
 	let min = 0;
 	let max = array.length;
 	let mid;
@@ -91,8 +89,8 @@ export function insertSorted(array, item, compareFunc = subtract) {
 	}
 }
 
-export function compose(...funcs) {
-	let existing = funcs[0]
+export function compose<T>(...funcs: Array<(a: T) => T>): (a: T) => T {
+	let existing = funcs[0];
 	for (let i = 1, l = funcs.length; i < l; i++) {
 		const current = funcs[i];
 		existing = val => current(existing(val));
@@ -100,12 +98,12 @@ export function compose(...funcs) {
 	return existing;
 }
 
-export function getRand(array) {
+export function getRand<T>(array: Array<T>): T {
 	// ~~ is a bitwise version of Math.floor
 	return array[~~(Math.random() * array.length)];
 }
 
-export function allEqual(...ls) {
+export function allEqual<T>(...ls: Array<T>): boolean {
 	if (ls.length === 0) {
 		return true;
 	}
@@ -119,7 +117,7 @@ export function allEqual(...ls) {
 }
 
 
-export function popRand(array) {
+export function popRand<T>(array: Array<T>): T {
 	// ~~ is a bitwise version of Math.floor
 	const i = ~~(Math.random() * array.length);
 	const result = array[i];
@@ -127,7 +125,7 @@ export function popRand(array) {
 	return result;
 }
 
-export function getDivPosition(div) {
+export function getDivPosition(div: HTMLElement): { x: number, y: number } {
 	const rect = div.getBoundingClientRect();
 	return {
 		"x": rect.left,
@@ -135,7 +133,7 @@ export function getDivPosition(div) {
 	};
 }
 
-export function getDivCenter(div) {
+export function getDivCenter(div: HTMLElement): { x: number, y: number } {
 	const rect = div.getBoundingClientRect();
 	return {
 		"x": (rect.left + rect.right) / 2,
@@ -143,7 +141,7 @@ export function getDivCenter(div) {
 	};
 }
 
-export function shallowStringify(obj, maxDepth, depth = 0) {
+export function shallowStringify(obj: any, maxDepth: number, depth = 0): string {
 	const type = typeof obj;
 	switch (type) {
 		case "string":
@@ -164,18 +162,18 @@ export function shallowStringify(obj, maxDepth, depth = 0) {
 	}
 }
 
-export function saveCanvas(canvas, name) {
+export function saveCanvas(canvas: HTMLCanvasElement, name: string): void {
 	const link = document.createElement("a");
 	link.setAttribute("download", name + ".png");
 	link.setAttribute("href", canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"));
 	link.click();
 }
 
-export function currentTimeMillis() {
+export function currentTimeMillis(): number {
 	return (new Date()).getTime();
 }
 
-export function downloadFile(filename, text) {
+export function downloadFile(filename: string, text: string): void {
 	const link = document.createElement("a");
 	link.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
 	link.setAttribute("download", filename);
@@ -187,7 +185,7 @@ export function downloadFile(filename, text) {
 }
 
 // by stackoverflow user 4815056
-export function getOS() {
+export function getOS(): string {
 	const userAgent = window.navigator.userAgent;
 	const platform = window.navigator.platform;
 	const macosPlatforms = ["Macintosh", "MacIntel", "MacPPC", "Mac68K"];
@@ -206,12 +204,12 @@ export function getOS() {
 	if (/Android/.test(userAgent)) {
 		return "Android";
 	}
-	if (!os && /Linux/.test(platform)) {
+	if (/Linux/.test(platform)) {
 		return "Linux";
 	}
 }
 
-export function clearObj(obj) {
+export function clearObj(obj: any): void {
 	for (const key in obj) {
 		delete obj[key];
 	}

@@ -1,4 +1,4 @@
-import NPoint from "./lib/NLib/npoint";
+import { NPoint, ZERO } from "./lib/NLib/npoint";
 import { Color } from "./library";
 
 export const CHUNK_SIZE = 64;
@@ -74,7 +74,7 @@ enum Neighbors {
 const DIRECTIONS = [
   new NPoint(0, 1), new NPoint(1, 1), new NPoint(1, 0),
   new NPoint(1, -1), new NPoint(0, -1), new NPoint(-1, -1),
-  new NPoint(-1, 0), new NPoint(-1, 1), NPoint.ZERO
+  new NPoint(-1, 0), new NPoint(-1, 1), ZERO
 ]
 
 const ANTIDIRS = [4, 5, 6, 7, 0, 1, 2, 3, 8];
@@ -189,9 +189,9 @@ export abstract class WorldGenerator {
     this.world = world;
   }
 
-  public runInit(): void{
-    if(this.initialized){
-      return; 
+  public runInit(): void {
+    if (this.initialized) {
+      return;
     }
     this.initialized = true;
     this.init();

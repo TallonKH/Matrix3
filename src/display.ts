@@ -1,15 +1,15 @@
 import { World } from "./base";
-import NPoint from "../lib/NLib/npoint";
+import { NPoint, ZERO } from "./lib/NLib/npoint";
 
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
-  private world: World|null = null;
-  private viewDims : NPoint = new NPoint(256, 256);
-  private viewOrigin : NPoint = NPoint.ZERO;
+  private world: World | null = null;
+  private viewDims: NPoint = new NPoint(256, 256);
+  private viewOrigin: NPoint = ZERO;
   private initialized = false;
 
-  public init(): void{
-    if(this.initialized){
+  public init(): void {
+    if (this.initialized) {
       return;
     }
     this.initialized = true;
@@ -17,7 +17,7 @@ export default class GridDisplay {
 
     new ResizeObserver((es) => {
       console.log(es.length);
-      for(const e of es){
+      for (const e of es) {
       }
     }).observe(this.canvas);
   }

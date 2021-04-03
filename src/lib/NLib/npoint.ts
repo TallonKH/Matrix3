@@ -1,81 +1,74 @@
 import {
 	clamp,
 	lerp
-} from "./nmath.js";
+} from "./nmath";
 
-export default class NPoint {
-	static ZERO = new NPoint(0, 0);
-	static LEFT = new NPoint(-1, 0);
-	static RIGHT = new NPoint(1, 0);
-	static UP = new NPoint(0, 1);
-	static DOWN = new NPoint(0, -1);
-	static DOWNLEFT = new NPoint(-1, -1);
-	static DOWNRIGHT = new NPoint(1, -1);
-	static UPLEFT = new NPoint(-1, 1);
-	static UPRIGHT = new NPoint(1, 1);
+export class NPoint {
+	public readonly x: number;
+	public readonly y: number;
 
-	constructor(x = 0, y = null) {
+	constructor(x = 0, y: number | null = null) {
 		this.x = x;
 		this.y = (y === null) ? x : y;
 		Object.freeze(this);
 	}
 
-	clamp1(mag) {
+	clamp1(mag: number): NPoint {
 		return new NPoint(
 			clamp(this.x, -mag, mag),
 			clamp(this.y, -mag, mag)
 		);
 	}
 
-	clamp2(min, max) {
+	clamp2(min: number, max: number): NPoint {
 		return new NPoint(
 			clamp(this.x, min, max),
 			clamp(this.y, min, max)
 		);
 	}
 
-	clamp4(minX, maxX, minY, maxY) {
+	clamp4(minX: number, maxX: number, minY: number, maxY: number): NPoint {
 		return new NPoint(
 			clamp(this.x, minX, maxX),
 			clamp(this.y, minY, maxY)
 		);
 	}
 
-	clamp1p(mag) {
+	clamp1p(mag: NPoint): NPoint {
 		return new NPoint(
 			clamp(this.x, -mag.x, mag.x),
 			clamp(this.y, -mag.y, mag.y)
 		);
 	}
 
-	clamp2p(min, max) {
+	clamp2p(min: NPoint, max: NPoint): NPoint {
 		return new NPoint(
 			clamp(this.x, min.x, max.x),
 			clamp(this.y, min.y, max.y)
 		);
 	}
 
-	toString(floatDigits = 3) {
+	toString(floatDigits = 3): string {
 		return `(${this.x.toFixed(floatDigits)}, ${this.y.toFixed(floatDigits)})`;
 	}
 
-	operate(func) {
+	operate(func: (c: number, pt: NPoint) => number): NPoint {
 		return new NPoint(
 			func(this.x, this),
 			func(this.y, this)
-		)
+		);
 	}
 
-	static cooperate(func, a, b) {
+	static cooperate(func: (a: number, b: number, ptA: NPoint, ptB: NPoint) => number, a: NPoint, b: NPoint): NPoint {
 		return new NPoint(
 			func(a.x, b.x, a, b),
-			func(a.y, b, y, a, b)
+			func(a.y, b.y, a, b)
 		)
 	}
 
-	static noperate(func, points) {
+	static noperate(func: (cs: Iterable<number>) => number, points: Array<NPoint>): NPoint {
 		if (points.length == 0) {
-			return NPoint.ZERO;
+			return ZERO;
 		}
 
 		return new NPoint(
@@ -84,7 +77,7 @@ export default class NPoint {
 		);
 	}
 
-	static sum(points) {
+	static sum(points: Iterable<NPoint>): NPoint {
 		let x = 0;
 		let y = 0;
 		for (const point of points) {
@@ -94,7 +87,7 @@ export default class NPoint {
 		return new NPoint(x, y);
 	}
 
-	static product(points) {
+	static product(points: Iterable<NPoint>): NPoint {
 		let x = 1;
 		let y = 1;
 		for (const point of points) {
@@ -104,83 +97,83 @@ export default class NPoint {
 		return new NPoint(x, y);
 	}
 
-	add1(other) {
+	add1(other: number): NPoint {
 		return new NPoint(this.x + other, this.y + other);
 	}
 
-	add2(x, y) {
+	add2(x: number, y: number): NPoint {
 		return new NPoint(this.x + x, this.y + y);
 	}
 
-	addp(other) {
+	addp(other: NPoint): NPoint {
 		return new NPoint(this.x + other.x, this.y + other.y);
 	}
 
-	subtract1(other) {
+	subtract1(other: number): NPoint {
 		return new NPoint(this.x - other, this.y - other);
 	}
 
-	subtract2(x, y) {
+	subtract2(x: number, y: number): NPoint {
 		return new NPoint(this.x - x, this.y - y);
 	}
 
-	subtractp(other) {
+	subtractp(other: NPoint): NPoint {
 		return new NPoint(this.x - other.x, this.y - other.y);
 	}
 
-	multiply1(other) {
+	multiply1(other: number): NPoint {
 		return new NPoint(this.x * other, this.y * other);
 	}
 
-	multiply2(x, y) {
+	multiply2(x: number, y: number): NPoint {
 		return new NPoint(this.x * x, this.y * y);
 	}
 
-	multiplyp(other) {
+	multiplyp(other: NPoint): NPoint {
 		return new NPoint(this.x * other.x, this.y * other.y);
 	}
 
-	divide1(other) {
+	divide1(other: number): NPoint {
 		return new NPoint(this.x / other, this.y / other);
 	}
 
-	divide2(x, y) {
+	divide2(x: number, y: number): NPoint {
 		return new NPoint(this.x / x, this.y / y);
 	}
 
-	dividep(other) {
+	dividep(other: NPoint): NPoint {
 		return new NPoint(this.x / other.x, this.y / other.y);
 	}
 
-	min1(other) {
+	min1(other: number): NPoint {
 		return new NPoint(Math.min(this.x, other), Math.min(this.y, other));
 	}
 
-	min2(x, y) {
+	min2(x: number, y: number): NPoint {
 		return new NPoint(Math.min(this.x, x), Math.min(this.y, y));
 	}
 
-	minp(other) {
+	minp(other: NPoint): NPoint {
 		return new NPoint(Math.min(this.x, other.x), Math.min(this.y, other.y));
 	}
 
-	max1(other) {
+	max1(other: number): NPoint {
 		return new NPoint(Math.max(this.x, other), Math.max(this.y, other));
 	}
 
-	max2(x, y) {
+	max2(x: number, y: number): NPoint {
 		return new NPoint(Math.max(this.x, x), Math.max(this.y, y));
 	}
 
-	maxp(other) {
+	maxp(other: NPoint): NPoint {
 		return new NPoint(Math.max(this.x, other.x), Math.max(this.y, other.y));
 	}
 
-	negate() {
+	negate(): NPoint {
 		return new NPoint(-this.x, -this.y);
 	}
 
-	round(n = 0) {
+	round(n = 0): NPoint {
 		if (n !== 0) {
 			const factor = Math.pow(10, n);
 			return new NPoint(Math.round(this.x * factor) / factor, Math.round(this.y * factor) / factor);
@@ -189,73 +182,71 @@ export default class NPoint {
 		}
 	}
 
-	floor() {
+	floor(): NPoint {
 		return new NPoint(Math.floor(this.x), Math.floor(this.y));
 	}
 
-	ceil() {
+	ceil(): NPoint {
 		return new NPoint(Math.ceil(this.x), Math.ceil(this.y));
 	}
 
-	addComponents() {
+	addComponents(): number {
 		return this.x + this.y;
 	}
 
-	lengthSquared() {
+	lengthSquared(): number {
 		return this.x * this.x + this.y * this.y;
 	}
 
-	length() {
+	length(): number {
 		return Math.sqrt(this.lengthSquared());
 	}
 
-	normalized() {
+	normalized(): NPoint {
 		return this.divide1(this.length());
 	}
 
-	lesser() {
+	lesser(): number {
 		return Math.min(this.x, this.y);
 	}
 
-	greater() {
+	greater(): number {
 		return Math.max(this.x, this.y);
 	}
 
-	copy() {
+	copy(): NPoint {
 		return new NPoint(this.x, this.y);
 	}
 
-	mirrorX() {
+	mirrorX(): NPoint {
 		return new NPoint(-this.x, this.y);
 	}
 
-	mirrorY() {
+	mirrorY(): NPoint {
 		return new NPoint(this.x, -this.y);
 	}
 
-	mirrors() {
-		return [
-			this.copy(),
-			this.mirrorX(),
-			this.negate(),
-			this.mirrorY()
-		]
+	*mirrors(): Iterator<NPoint> {
+		yield this.copy();
+		yield this.mirrorX();
+		yield this.negate();
+		yield this.mirrorY();
 	}
 
-	reflect(normal) {
+	reflect(normal: NPoint): NPoint {
 		return this.subtractp(normal.multiply1(NPoint.dotProduct(this, normal) * 2));
 	}
 
-	project(tangent){
+	project(tangent: NPoint): NPoint {
 		const normTan = tangent.normalized();
 		return normTan.multiply1(NPoint.dotProduct(this, normTan));
 	}
 
-	reject(tangent){
+	reject(tangent: NPoint): NPoint {
 		return this.subtractp(this.project(tangent));
 	}
 
-	withinRect(cornerA, cornerB = null) {
+	withinRect(cornerA: NPoint, cornerB: NPoint = null): boolean {
 		if (cornerB === null) {
 			const mx = Math.abs(cornerA.x);
 			const my = Math.abs(cornerA.y);
@@ -267,38 +258,38 @@ export default class NPoint {
 		return (this.x <= gc.x) && (this.x >= lc.x) && (this.y <= gc.y) && (this.y >= lc.y);
 	}
 
-	rotate(rads) {
+	rotate(rads: number): NPoint {
 		const prevRads = this.getAngle();
 		const mag = this.length();
 		return new NPoint(Math.cos(rads + prevRads) * mag, Math.sin(rads + prevRads) * mag);
 	}
 
-	getAngle() {
+	getAngle(): number {
 		return Math.atan2(this.y, this.x);
 	}
 
-	rotateAxis(rads, axis) {
+	rotateAxis(rads: number, axis: NPoint): NPoint {
 		return this.subtractp(axis).rotate(rads).addp(axis);
 	}
 
-	static distSquared(a, b) {
+	static distSquared(a: NPoint, b: NPoint): number {
 		return a.subtractp(b).lengthSquared();
 	}
 
-	static dist(a, b) {
+	static dist(a: NPoint, b: NPoint): number {
 		return a.subtractp(b).length();
 	}
 
-	static fromAngle(rads){
+	static fromAngle(rads: number): NPoint {
 		return new NPoint(Math.cos(rads), Math.sin(rads));
 	}
 
-	nearest(points){
+	nearest(points: Array<NPoint>): { point: NPoint, index: number, distSq: number } {
 		let shortestDistSq = NPoint.distSquared(this, points[0]);
 		let bestIndex = 0;
-		for(let i=1; i<points.length; i++){
+		for (let i = 1; i < points.length; i++) {
 			const currentDistSq = NPoint.distSquared(this, points[i]);
-			if(currentDistSq < shortestDistSq){
+			if (currentDistSq < shortestDistSq) {
 				bestIndex = i;
 				shortestDistSq = currentDistSq;
 			}
@@ -310,7 +301,7 @@ export default class NPoint {
 		};
 	}
 
-	distToSegmentSquared(v, w) {
+	distToSegmentSquared(v: NPoint, w: NPoint): number {
 		const l2 = NPoint.distSquared(v, w);
 		if (l2 === 0) {
 			return NPoint.distSquared(this, v);
@@ -319,26 +310,26 @@ export default class NPoint {
 		return NPoint.distSquared(this, w.subtractp(v).multiply1(t).addp(v));
 	}
 
-	distToSegment(v, w) {
+	distToSegment(v: NPoint, w: NPoint): number {
 		return Math.sqrt(this.distToSegmentSquared(v, w));
 	}
 
-	equals(other) {
+	equals(other: NPoint): boolean {
 		return this.x === other.x && this.y === other.y;
 	}
 
-	nearlyEqual(other, threshold) {
+	nearlyEqual(other: NPoint, threshold = 0.0001): boolean {
 		return Math.abs(this.x - other.x) <= threshold && Math.abs(this.y - other.y) <= threshold;
 	}
 
-	static lerp(a, b, factor) {
+	static lerp(a: NPoint, b: NPoint, factor: number): NPoint {
 		return new NPoint(
 			lerp(a.x, b.x, factor),
 			lerp(a.y, b.y, factor)
 		);
 	}
 
-	static same(...pts) {
+	static same(...pts: Array<NPoint>): boolean {
 		const x = pts[0].x;
 		const y = pts[0].y;
 		for (let i = 1, l = pts.length; i < l; i++) {
@@ -350,23 +341,23 @@ export default class NPoint {
 		return true;
 	}
 
-	static min(...pts) {
+	static min(...pts: Array<NPoint>): NPoint {
 		return new NPoint(Math.min(...pts.map(pt => pt.x)), Math.min(...pts.map(pt => pt.y)));
 	}
 
-	static max(...pts) {
+	static max(...pts: Array<NPoint>): NPoint {
 		return new NPoint(Math.max(...pts.map(pt => pt.x)), Math.max(...pts.map(pt => pt.y)));
 	}
 
-	static dotProduct(a, b) {
+	static dotProduct(a: NPoint, b: NPoint): number {
 		return a.x * b.x + a.y * b.y;
 	}
 
-	static crossProduct(a, b) {
+	static crossProduct(a: NPoint, b: NPoint): number {
 		return a.x * b.y - a.y * b.x;
 	}
 
-	static segmentIntersection(a1, a2, b1, b2) {
+	static segmentIntersection(a1: NPoint, a2: NPoint, b1: NPoint, b2: NPoint): boolean {
 		const dxa = (a2.x - a1.x);
 		const dxb = (b2.x - b1.x);
 
@@ -412,7 +403,7 @@ export default class NPoint {
 		}
 	}
 
-	static getPointOnBezier(p1, p2, p3, p4, t) {
+	static getPointOnBezier(p1: NPoint, p2: NPoint, p3: NPoint, p4: NPoint, t: number): NPoint {
 		const omt = 1 - t;
 		const omt2 = omt * omt;
 		const t2 = t * t;
@@ -427,3 +418,13 @@ export default class NPoint {
 		return new NPoint(curveX, curveY);
 	}
 }
+
+export const ZERO: NPoint = new NPoint(0, 0);
+export const LEFT: NPoint = new NPoint(-1, 0);
+export const RIGHT: NPoint = new NPoint(1, 0);
+export const UP: NPoint = new NPoint(0, 1);
+export const DOWN: NPoint = new NPoint(0, -1);
+export const DOWNLEFT: NPoint = new NPoint(-1, -1);
+export const DOWNRIGHT: NPoint = new NPoint(1, -1);
+export const UPLEFT: NPoint = new NPoint(-1, 1);
+export const UPRIGHT: NPoint = new NPoint(1, 1);

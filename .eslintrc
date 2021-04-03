@@ -11,6 +11,8 @@
   ],
   "rules": {
     "semi":[1, "always"],
-    "quotes": [1, "double"]
+    "quotes": [1, "double"],
+    "no-constant-condition":"off",
+    "no-empty":"warn"
   }
 }
