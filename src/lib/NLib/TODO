@@ -1,0 +1,11 @@
+Libraries
+- multi lerp (nums and colors)
+
+Viewport
+- combine all register/unregisters into a map of registries
+    ie: instead of `registerMouseListeningObj(obj)`, have `registerObj("MouseListening", obj)`
+- add ability to specify ticking order
+? add ability to supply custom data to event-registered objects
+    ie: on click, an object could supply *where* it was clicked for future reference
+    but: maybe don't need, as the object can just track this info itself
+- fix pre/post event order for pointer movement
