@@ -11,5 +11,6 @@
       "esnext",
     ],
     "downlevelIteration": true,
+    "strictNullChecks": true,
   }
 }

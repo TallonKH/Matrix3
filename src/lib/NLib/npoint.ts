@@ -63,7 +63,7 @@ export class NPoint {
 		return new NPoint(
 			func(a.x, b.x, a, b),
 			func(a.y, b.y, a, b)
-		)
+		);
 	}
 
 	static noperate(func: (cs: Iterable<number>) => number, points: Array<NPoint>): NPoint {
@@ -376,7 +376,7 @@ export class NPoint {
 			}
 			const mb = (b2.y - b1.y) / dxb;
 			const bb = b1.y - (mb * b1.x);
-			const interY = (mb * a1.x) + bb
+			const interY = (mb * a1.x) + bb;
 			return interY >= minA.y && interY <= maxA.y && interY >= minB.y && interY <= maxB.y;
 		} else if (dxb === 0) {
 			if (minA.x > b1.x || maxA.x < b1.x) {
@@ -384,7 +384,7 @@ export class NPoint {
 			}
 			const ma = (a2.y - a1.y) / dxa;
 			const ba = a1.y - (ma * a1.x);
-			const interY = (ma * b1.x) + ba
+			const interY = (ma * b1.x) + ba;
 			return interY >= minA.y && interY <= maxA.y && interY >= minB.y && interY <= maxB.y;
 		} else {
 			const ma = (a2.y - a1.y) / dxa;

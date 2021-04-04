@@ -27,6 +27,8 @@ export function smoothStep(minEdge: number, maxEdge: number, value: number, easi
 
 type EasingFunc = (x: number) => number;
 
+
+
 export const easingFuncs: Map<string, EasingFunc> = new Map<string, EasingFunc>(
 	[["linear", easeLinear],
 	["hermite", easeHermite],
@@ -35,8 +37,12 @@ export const easingFuncs: Map<string, EasingFunc> = new Map<string, EasingFunc>(
 	["sine", easeSine]]
 );
 
-export function ease(x: number, methodName: string): number {
-	return easingFuncs.get(methodName)(x);
+export function ease(x: number, methodName: string): number|null {
+	const func =  easingFuncs.get(methodName);
+	if(func === undefined){
+		return -1;
+	}
+	return func(x);
 }
 
 export function easeLinear(x: number): number {
@@ -70,10 +76,10 @@ export function average(values: Iterable<number>): number {
 }
 
 export function gaussianGenerator(mean: number, stdev: number): number {
-	let y2: number;
+	let y2 = 0;
 	let use_last = false;
 	return (() => {
-		let y1;
+		let y1 = 0;
 		if (use_last) {
 			y1 = y2;
 			use_last = false;
