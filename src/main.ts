@@ -42,4 +42,5 @@ const mainDisplay = new GridDisplay();
 mainDisplay.init();
 mainDisplay.canvas.style.width = "100%";
 mainDisplay.canvas.style.height = "100%";
+mainDisplay.canvas.style.border = "2px solid black";
 document.body.appendChild(mainDisplay.canvas);

@@ -1,7 +1,9 @@
 import { NPoint, ZERO } from "./lib/NLib/npoint";
 import { Color } from "./library";
 
-export const CHUNK_SIZE = 64;
+export const CHUNK_BITSHIFT = 5;
+export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
+export const CHUNK_MODMASK = CHUNK_SIZE - 1; // 0b11111
 export const CHUNK_SIZEm1 = CHUNK_SIZE - 1;
 export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
 export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
@@ -17,10 +19,10 @@ type Grid16 = Uint16Array;
 type Grid32 = Uint32Array;
 
 type BlockShader = (world: World, chunk: Chunk, index: number) => Color;
-export const shaderSolid: (color: Color) => BlockShader = (color: Color) => () => color
+export const shaderSolid: (color: Color) => BlockShader = (color: Color) => () => color;
 
 type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
-// eslint-disable-next-line @typescript-eslint/no-empty-function
+// eslint-disable-next-line no-empty-function
 export const updateStatic: TickBehavior = () => { };
 
 interface BlockTypeArgs {
@@ -75,7 +77,7 @@ const DIRECTIONS = [
   new NPoint(0, 1), new NPoint(1, 1), new NPoint(1, 0),
   new NPoint(1, -1), new NPoint(0, -1), new NPoint(-1, -1),
   new NPoint(-1, 0), new NPoint(-1, 1), ZERO
-]
+];
 
 const ANTIDIRS = [4, 5, 6, 7, 0, 1, 2, 3, 8];
 
@@ -160,7 +162,7 @@ export class Chunk {
       x += CHUNK_SIZE;
       cx = 0;
     } else if (x > CHUNK_SIZEm1) {
-      x = 0
+      x = 0;
       cx = 2;
     } else {
       cx = 1;
@@ -295,7 +297,7 @@ export class World {
     if (this.blockTypeMap.has(type.name)) {
       return undefined;
     }
-    const blockId: BlockId = this.blockTypes.length
+    const blockId: BlockId = this.blockTypes.length;
     this.blockTypeMap.set(type.name, blockId);
     this.blockTypes.push(type);
     return blockId;
@@ -327,6 +329,7 @@ export class World {
     }
 
     // create new chunk
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const newChunk = this.worldGen!.generate(this, coord);
     this.chunks.set(coord, newChunk);
 
