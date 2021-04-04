@@ -246,7 +246,7 @@ export class NPoint {
 		return this.subtractp(this.project(tangent));
 	}
 
-	withinRect(cornerA: NPoint, cornerB: NPoint = null): boolean {
+	withinRect(cornerA: NPoint, cornerB: NPoint|null = null): boolean {
 		if (cornerB === null) {
 			const mx = Math.abs(cornerA.x);
 			const my = Math.abs(cornerA.y);

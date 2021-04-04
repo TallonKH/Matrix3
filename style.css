@@ -13,8 +13,3 @@ body {
   padding: 0px;
   margin: 0px;
 }
-
-canvas {
-  height: 100%;
-  background-color: red;
-}

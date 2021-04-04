@@ -207,6 +207,7 @@ export function getOS(): string {
 	if (/Linux/.test(platform)) {
 		return "Linux";
 	}
+	return "Unknown";
 }
 
 export function clearObj(obj: any): void {

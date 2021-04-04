@@ -29,7 +29,7 @@ export class Color {
 
   constructor(r: number, g: number, b: number) {
     this.r = r;
-    this.g = b;
+    this.g = g;
     this.b = b;
     Object.freeze(this);
   }

@@ -1,15 +1,19 @@
 import { World } from "./base";
 import { NPoint, ZERO } from "./lib/NLib/npoint";
+import { Color } from "./library";
 
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
   private ctx: CanvasRenderingContext2D;
   private world: World | null = null;
-  private viewDims: NPoint = new NPoint(256, 256);
+  private dims: NPoint = new NPoint(256, 256);
   private viewOrigin: NPoint = ZERO;
   private initialized = false;
   private readonly resizeCallbacks: Array<(e: ResizeObserverEntry) => void> = [];
-  private displayScale = 1;
+  private displayScale = 0.5;
+
+  private resizeFinishTimer : number|undefined = undefined;
+  private isResizing = true;
 
   public init(): void {
     if (this.initialized) {
@@ -22,47 +26,61 @@ export default class GridDisplay {
       return;
     }
     this.ctx = ctx;
+    this.canvas.style.imageRendering = "pixelated";
 
     // this.canvas.style.background = "none";
 
-    (new ResizeObserver((es) => this.resizeCallbacks.forEach(c => c(es[0])))).observe(this.canvas);
+    (new ResizeObserver((es) => {
+      window.clearTimeout(this.resizeFinishTimer);
+      this.isResizing = true;
+      this.resizeFinishTimer = window.setTimeout(() => {
+        this.resizeCallbacks.forEach(c => c(es[0]));
+        this.isResizing = false;
+      }, 250);
+    })).observe(this.canvas);
+
     this.resizeCallbacks.push((e) => {
       const rect = this.canvas.getBoundingClientRect();
-      this.viewDims = new NPoint(rect.width, rect.height).multiply1(this.displayScale).round();
-      console.log(this.viewDims);
+      this.dims = new NPoint(rect.width, rect.height).multiply1(this.displayScale).round();
+      console.log(this.dims);
 
-      this.canvas.width = this.viewDims.x;
-      this.canvas.height = this.viewDims.y;
-
-
+      this.canvas.width = this.dims.x;
+      this.canvas.height = this.dims.y;
     });
-    let t = 0;
+    
+    // redraw
     window.setInterval(() => {
-      t++;
-      const dat = this.ctx.getImageData(0, 0, this.viewDims.x, this.viewDims.y).data;
-
-      for (let x = 0; x < this.canvas.width; x++) {
-        for (let y = 0; y < this.canvas.height; y++) {
-          const i = (x + y * this.viewDims.x) << 2;
-          dat[i] = x % 256;
-          dat[i + 1] = (y + t) % 256;
-          dat[i + 2] = ((Math.floor((x + t) / 64) % 2) ^ (Math.floor(y / 64) % 2)) * 255;
-          dat[i + 3] = 255;
-        }
+      if(this.isResizing){
+        return;
       }
-      this.ctx.putImageData(new ImageData(dat, this.viewDims.x, this.viewDims.y), 0, 0);
+
     }, 50);
 
     this.initialized = true;
   }
 
+  public fillSquare(x: number, y: number, w: number, h: number, r: number, g: number, b: number): void {
+    const len = (w * h) << 2;
+    const data = new Uint8ClampedArray(len);
+    r = ~~(r * 255);
+    g = ~~(g * 255);
+    b = ~~(b * 255);
+    for (let i = 0; i < len; i += 4) {
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+    this.ctx.putImageData(new ImageData(data, w, h), x, y);
+  }
+
   public setViewDims(viewDims: NPoint): void {
-    this.viewDims = viewDims;
+    this.dims = viewDims;
     this.canvas.width = viewDims.x;
     this.canvas.height = viewDims.y;
   }
 
   public getViewDims(): NPoint {
-    return this.viewDims;
+    return this.dims;
   }
 }
