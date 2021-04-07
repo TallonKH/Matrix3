@@ -1,30 +1,31 @@
-import { Chunk, World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT } from "./base";
+import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT } from "./base";
 import { NPoint, ZERO } from "./lib/NLib/npoint";
-import { Color } from "./library";
 
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
-  private initialized = false;
 
   private ctx: CanvasRenderingContext2D;
   private world: World | null = null;
-
-  private dims: NPoint = new NPoint(256, 256);
-  private pixelsPerBlock = 4;
-  private pixelsPerChunk = this.pixelsPerBlock * CHUNK_SIZE;
+  private worldDrawListenerId = -1;
 
   private viewOrigin: NPoint = ZERO;
+  private dims: NPoint = new NPoint(4, 4);
+  private pixelsPerBlock = 4;
 
+  private visibleMin: NPoint | null = null;
+  private visibleMax: NPoint | null = null;
+  
   private readonly resizeCallbacks: Array<(e: ResizeObserverEntry) => void> = [];
   private resizeFinishTimer: number | undefined = undefined;
   private isResizing = true;
-  private drawDebugChunks = true;
+  private resizeHappened = false;
 
-  public init(): void {
-    if (this.initialized) {
-      return;
-    }
+  /**
+   * rectangular regions pending redraw within chunks (local coords)
+   */
+  private chunkPendingRects: Map<NPoint, [number, number, number, number]> = new Map();
 
+  constructor() {
     const ctx = this.canvas.getContext("2d");
     if (ctx === null) {
       throw "failed to get canvas context";
@@ -32,24 +33,27 @@ export default class GridDisplay {
     }
     this.ctx = ctx;
     this.canvas.style.imageRendering = "pixelated";
+    this.canvas.style.background = "none";
 
-    // this.canvas.style.background = "none";
-
+    // call resizeCallbacks when resizing has stopped
     (new ResizeObserver((es) => {
       window.clearTimeout(this.resizeFinishTimer);
       this.isResizing = true;
       this.resizeFinishTimer = window.setTimeout(() => {
         this.resizeCallbacks.forEach(c => c(es[0]));
         this.isResizing = false;
+        this.resizeHappened = true;
       }, 250);
     })).observe(this.canvas);
 
+    // add a resizeCallback for setting the canvas dimensions to the element dimensions
     this.resizeCallbacks.push(() => {
       const rect = this.canvas.getBoundingClientRect();
       this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
 
       this.canvas.width = this.dims.x;
       this.canvas.height = this.dims.y;
+      this.recalcVisibleChunks();
     });
 
     document.addEventListener("mousemove", (e) => {
@@ -61,52 +65,96 @@ export default class GridDisplay {
       if (this.isResizing) {
         return;
       }
-      this.redrawWorld();
-    }, 50);
-
-    this.initialized = true;
+      this.drawDebugChunks(); 
+      this.recalcVisibleChunks();
+    }, 100);
   }
 
-  public getPixelsPerBlock(): number {
-    return this.pixelsPerBlock;
+  public setViewOrigin(pt: NPoint): NPoint {
+    this.viewOrigin = pt;
+    this.recalcVisibleChunks();
+    return pt;
   }
 
-  public setPixelsPerBlock(value: number): void {
-    this.pixelsPerBlock = value;
-    this.pixelsPerChunk = value * CHUNK_SIZE;
+  // this is not efficient; replace with more efficient thing later
+  public recalcVisibleChunks(): void {
+    if (!this.resizeHappened || this.world === null) {
+      return;
+    }
+    const vx = (this.viewOrigin.x / this.pixelsPerBlock) / CHUNK_SIZE;
+    const vy = (this.viewOrigin.y / this.pixelsPerBlock) / CHUNK_SIZE;
+    const sx = Math.floor(-vx);
+    const sy = Math.floor(-vy);
+    const ex = Math.floor((this.dims.x / CHUNK_SIZE) - vx);
+    const ey = Math.floor((this.dims.y / CHUNK_SIZE) - vy);
+    const newMin = new NPoint(sx, sy);
+    const newMax = new NPoint(ex, ey);
+
+    if (this.visibleMin === null) {
+      // nothing loaded yet; load everything in range
+      this.world.forArea(sx, sy, ex, ey, this.world.requestChunkLoad.bind(this.world));
+    } else {
+      // something already loaded; update 
+    }
+
+    this.visibleMin = newMin;
+    this.visibleMax = newMax;
   }
 
-  redrawWorld(): void {
+  public link(world: World): void {
+    this.unlink();
+    this.world = world;
+
+    this.world.registerRedrawListener((chunk, i) => {
+      
+    });
+    this.recalcVisibleChunks();
+  }
+
+  public unlink(): void {
+    if (this.world === null) {
+      return;
+    }
+    this.world.unregisterRedrawListener(this.worldDrawListenerId);
+    this.world = null;
+  }
+
+  drawDebugChunks(): void {
+    if (this.world === null) {
+      return;
+    }
 
     const vox = this.viewOrigin.x / this.pixelsPerBlock;
     const voy = this.viewOrigin.y / this.pixelsPerBlock;
+    const vodX = vox >> CHUNK_BITSHIFT;
+    const vodY = voy >> CHUNK_BITSHIFT;
 
     for (let x = -1; x < this.dims.x / CHUNK_SIZE; x++) {
       for (let y = -1; y < this.dims.y / CHUNK_SIZE; y++) {
         const vx = ~~(x * CHUNK_SIZE + (vox & CHUNK_MODMASK));
         const vy = ~~(y * CHUNK_SIZE + (voy & CHUNK_MODMASK));
 
-        const cx = x - (vox >> CHUNK_BITSHIFT);
-        const cy = y - (voy >> CHUNK_BITSHIFT);
+        const cx = x - vodX;
+        const cy = y - vodY;
 
-        if(this.drawDebugChunks){
-          this.fillSquare(
-            vx, vy,
-            CHUNK_SIZE, CHUNK_SIZE,
-            Math.random() * 0.2, Math.random() * 0.2 + 0.8, Math.random() * 0.2 + 0.8
-          );
-          this.strokeSquare(
-            vx, vy,
-            CHUNK_SIZE, CHUNK_SIZE,
-            Math.abs(cx / 10), Math.abs(cy / 10), (((cx ? 1 : 0) ^ (cy ? 1 : 0)) * 255)
-          );
-          this.ctx.textBaseline = "top";
-          this.ctx.fillStyle = "black";
-          this.ctx.fillText(`${cx}:${cy}`, vx, vy);
-          this.ctx.textBaseline = "top";
-          this.ctx.fillStyle = "red";
-          this.ctx.fillText(`${vx}:${vy}`, vx, vy + 8);
-        }
+        const exists = this.world.isChunkLoaded(cx, cy);
+        this.fillSquare(
+          vx, vy,
+          CHUNK_SIZE, CHUNK_SIZE,
+          exists ? 0 : 1, exists ? 1 : 0, (cx ? 1 : 0) ^ (cy ? 1 : 0)
+        );
+
+        this.strokeSquare(
+          vx, vy,
+          CHUNK_SIZE, CHUNK_SIZE,
+          Math.abs(cx / 10), Math.abs(cy / 10), (cx ? 1 : 0) ^ (cy ? 1 : 0)
+        );
+        this.ctx.textBaseline = "top";
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(`${cx}:${cy}`, vx, vy);
+        // this.ctx.textBaseline = "top";
+        // this.ctx.fillStyle = "red";
+        // this.ctx.fillText(`${vx}:${vy}`, vx, vy + 8);
       }
     }
   }

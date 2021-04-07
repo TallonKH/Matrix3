@@ -15,11 +15,11 @@ class CheckerGen extends WorldGenerator {
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 
-  public generate(_world: World, chunkCoord: ChunkCoord): Chunk {
+  public generate(_world: World, x: number, y: number): Chunk {
     const grid = new Uint16Array(CHUNK_SIZE2);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    grid.fill(((chunkCoord.x & 1) ^ (chunkCoord.y & 1)) ? this.typeA! : this.typeB!);
-    return new Chunk(chunkCoord, grid);
+    grid.fill(((x & 1) ^ (y & 1)) ? this.typeA! : this.typeB!);
+    return new Chunk(x, y, grid);
   }
 }
 
@@ -39,7 +39,7 @@ world.addBlockType(bt_stone);
 world.init();
 
 const mainDisplay = new GridDisplay();
-mainDisplay.init();
+mainDisplay.link(world);
 mainDisplay.canvas.style.width = "100%";
 mainDisplay.canvas.style.height = "100%";
 mainDisplay.canvas.style.border = "2px solid black";

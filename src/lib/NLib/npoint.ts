@@ -3,6 +3,8 @@ import {
 	lerp
 } from "./nmath";
 
+export type PointStr = string;
+
 export class NPoint {
 	public readonly x: number;
 	public readonly y: number;
@@ -46,6 +48,14 @@ export class NPoint {
 			clamp(this.x, min.x, max.x),
 			clamp(this.y, min.y, max.y)
 		);
+	}
+
+	toHash(): PointStr {
+		return this.x + ":" + this.y;
+	}
+
+	static toHash(x: number, y:number): PointStr {
+		return x + ":" + y;
 	}
 
 	toString(floatDigits = 3): string {

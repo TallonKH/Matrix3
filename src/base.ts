@@ -1,4 +1,4 @@
-import { NPoint, ZERO } from "./lib/NLib/npoint";
+import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 import { Color } from "./library";
 
 export const CHUNK_BITSHIFT = 5;
@@ -107,10 +107,12 @@ export class Chunk {
    * 3: pending redraw
    */
   public readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
-  public readonly chunkCoord: NPoint;
+  public readonly x: number;
+  public readonly y: number;
 
-  constructor(chunkCoord: NPoint, types: Grid16) {
-    this.chunkCoord = chunkCoord;
+  constructor(x: number, y: number, types: Grid16) {
+    this.x = x;
+    this.y = y;
     this.types = types;
   }
 
@@ -201,7 +203,7 @@ export abstract class WorldGenerator {
 
   protected abstract init(): boolean;
 
-  public abstract generate(world: World, chunkCoord: ChunkCoord): Chunk;
+  public abstract generate(world: World, x: number, y: number): Chunk;
 }
 
 /**
@@ -211,15 +213,16 @@ class MissingWorldGen extends WorldGenerator {
   public init(): boolean {
     return true;
   }
-  public generate(world: World, chunkCoord: NPoint): Chunk {
+  public generate(world: World, x: number, y: number): Chunk {
     // block type 0 = bt_missing
-    return new Chunk(chunkCoord, new Uint16Array(CHUNK_SIZE2));
+    return new Chunk(x, y, new Uint16Array(CHUNK_SIZE2));
   }
 
 }
 
 export class World {
-  private readonly chunks: Map<NPoint, Chunk> = new Map();
+  private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
+  private readonly loadedChunks: Map<PointStr, Chunk> = new Map();
   private readonly worldGenGen: (world: World) => WorldGenerator;
   private worldGen?: WorldGenerator;
   private readonly blockTypes: Array<BlockType> = [];
@@ -227,18 +230,25 @@ export class World {
   private time = 0;
   private initialized = false;
 
+  private redrawListenerCounter = 0;
+  private redrawListeners: Map<number, (chunk: Chunk, i: number) => void> = new Map();
+
   constructor(worldGenGen: (world: World) => WorldGenerator) {
     this.addBlockType(bt_missing);
     this.worldGenGen = worldGenGen ?? ((world: World) => new MissingWorldGen(world));
   }
 
   public init(): boolean {
+    if (this.initialized) {
+      return true;
+    }
+
     this.worldGen = this.worldGenGen(this);
     this.initialized = true;
     return true;
   }
 
-  public enqueueBlock(chunk: Chunk, i: number): void {
+  public queueBlock(chunk: Chunk, i: number): void {
     chunk.pendingTick = true;
     if (!chunk.getFlag(i, UpdateFlags.PENDING_TICK)) {
       chunk.setFlagOn(i, UpdateFlags.PENDING_TICK);
@@ -246,8 +256,55 @@ export class World {
     }
   }
 
-  public enqueueNeighbors(chunk: Chunk, x: number, y: number, enqueueSelf = true): void {
-    chunk.forEachNeighbor(x, y, this.enqueueBlock, enqueueSelf);
+  public queueNeighbors(chunk: Chunk, x: number, y: number, enqueueSelf = true): void {
+    chunk.forEachNeighbor(x, y, this.queueBlock, enqueueSelf);
+  }
+
+  public forArea(ax: number, ay: number, bx: number, by: number, f: (x: number, y: number) => void): void {
+    for (let x = ax; x <= bx; x++) {
+      for (let y = ay; y <= by; y++) {
+        f(x, y);
+      }
+    }
+  }
+
+  public requestChunkLoad(x: number, y: number): void {
+    const ch = NPoint.toHash(x, y);
+    const newCount = 1 + (this.chunkLoadRequests.get(ch) ?? 0);
+    this.chunkLoadRequests.set(ch, newCount);
+    if(newCount === 1){
+      this.acquireChunk(x, y);
+    }
+  }
+
+  public requestChunkUnload(x: number, y: number): void {
+    const ch = NPoint.toHash(x, y);
+    const count = this.chunkLoadRequests.get(ch);
+    if (count === 0 || count === undefined) {
+      throw "requested to unload chunk that isn't loaded?";
+      return;
+    }
+
+    if(count === 1){
+      this.chunkLoadRequests.delete(ch);
+      this.loadedChunks.delete(ch);
+    }else{
+      this.chunkLoadRequests.set(ch, count - 1);
+    }
+  }
+
+  public registerRedrawListener(func: (chunk: Chunk, i: number) => void): number {
+    this.redrawListenerCounter++;
+    this.redrawListeners.set(this.redrawListenerCounter, func);
+    return this.redrawListenerCounter;
+  }
+
+  public unregisterRedrawListener(id: number): void {
+    this.redrawListeners.delete(id);
+  }
+
+  public requestBlockRedraw(chunk: Chunk, i: number): void {
+    this.redrawListeners.forEach(f => f(chunk, i));
   }
 
   /**
@@ -259,7 +316,7 @@ export class World {
     }
 
     // update pending chunks/blocks
-    for (const [, chunk] of this.chunks) {
+    for (const [, chunk] of this.loadedChunks) {
       if (!chunk.pendingTick) {
         continue;
       }
@@ -273,7 +330,7 @@ export class World {
     }
 
     // apply/flush the pendingPending buffer
-    for (const [, chunk] of this.chunks) {
+    for (const [, chunk] of this.loadedChunks) {
       if (!chunk.pendingTick) {
         continue;
       }
@@ -303,12 +360,12 @@ export class World {
     return blockId;
   }
 
-  public *getChunksInRange(origin: NPoint, dims: NPoint): Generator<Chunk> {
+  public *acqiureChunksInRange(origin: NPoint, dims: NPoint): Generator<Chunk> {
     const min = origin.divide1(CHUNK_SIZE).floor();
     const max = dims.divide1(CHUNK_SIZE).ceil();
     for (let x = min.x; x < max.x; x++) {
       for (let y = min.y; y < max.y; y++) {
-        yield this.acquireChunk(new NPoint(x, y));
+        yield this.acquireChunk(x, y);
       }
     }
     return;
@@ -317,25 +374,27 @@ export class World {
   /**
    * impure; will create the chunk if it does not exist
    */
-  public acquireChunk(coord: ChunkCoord): Chunk {
+  public acquireChunk(x: number, y: number): Chunk {
     if (!this.initialized) {
       throw "Attempted to acquire a chunk before initialization";
     }
 
+    const ch = NPoint.toHash(x, y);
+
     // check for existing chunk
-    const existing: Chunk | undefined = this.chunks.get(coord);
+    const existing: Chunk | undefined = this.loadedChunks.get(ch);
     if (existing !== undefined) {
       return existing;
     }
 
     // create new chunk
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const newChunk = this.worldGen!.generate(this, coord);
-    this.chunks.set(coord, newChunk);
+    const newChunk = this.worldGen!.generate(this, x, y);
+    this.loadedChunks.set(ch, newChunk);
 
     // assign neighbors
     for (let i = 0; i < 8; i++) {
-      const neighbor = this.getChunk(coord.addp(DIRECTIONS[i]));
+      const neighbor = this.getChunk(x + DIRECTIONS[i].x, y + DIRECTIONS[i].y);
       if (neighbor !== undefined) {
         newChunk.neighbors[i] = neighbor;
         neighbor.neighbors[ANTIDIRS[i]] = newChunk;
@@ -345,8 +404,11 @@ export class World {
     return newChunk;
   }
 
-  public getChunk(coord: ChunkCoord): Chunk | undefined {
-    return this.chunks.get(coord);
+  public getChunk(x: number, y: number): Chunk | undefined {
+    return this.loadedChunks.get(NPoint.toHash(x, y));
+  }
+  public isChunkLoaded(x: number, y: number): boolean {
+    return this.loadedChunks.has(NPoint.toHash(x, y));
   }
 
   public getTime(): number {
