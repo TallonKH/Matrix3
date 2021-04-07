@@ -9,12 +9,13 @@ export default class GridDisplay {
   private worldDrawListenerId = -1;
 
   private viewOrigin: NPoint = ZERO;
+  // viewport dimensions, measured in blocks
   private dims: NPoint = new NPoint(4, 4);
-  private pixelsPerBlock = 4;
+  private pixelsPerBlock = 2;
 
   private visibleMin: NPoint | null = null;
   private visibleMax: NPoint | null = null;
-  
+
   private readonly resizeCallbacks: Array<(e: ResizeObserverEntry) => void> = [];
   private resizeFinishTimer: number | undefined = undefined;
   private isResizing = true;
@@ -43,7 +44,7 @@ export default class GridDisplay {
         this.resizeCallbacks.forEach(c => c(es[0]));
         this.isResizing = false;
         this.resizeHappened = true;
-      }, 250);
+      }, 100);
     })).observe(this.canvas);
 
     // add a resizeCallback for setting the canvas dimensions to the element dimensions
@@ -57,7 +58,7 @@ export default class GridDisplay {
     });
 
     document.addEventListener("mousemove", (e) => {
-      this.viewOrigin = new NPoint(e.offsetX, e.offsetY);
+      this.viewOrigin = new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock));
     });
 
     // redraw
@@ -65,7 +66,7 @@ export default class GridDisplay {
       if (this.isResizing) {
         return;
       }
-      this.drawDebugChunks(); 
+      this.drawDebugChunks();
       this.recalcVisibleChunks();
     }, 100);
   }
@@ -106,7 +107,7 @@ export default class GridDisplay {
     this.world = world;
 
     this.world.registerRedrawListener((chunk, i) => {
-      
+
     });
     this.recalcVisibleChunks();
   }
@@ -141,14 +142,16 @@ export default class GridDisplay {
         this.fillSquare(
           vx, vy,
           CHUNK_SIZE, CHUNK_SIZE,
-          exists ? 0 : 1, exists ? 1 : 0, (cx ? 1 : 0) ^ (cy ? 1 : 0)
+          exists ? 0 : 1, exists ? 1 : 0, (cx & 1) ^ (cy & 1)
         );
 
-        this.strokeSquare(
-          vx, vy,
-          CHUNK_SIZE, CHUNK_SIZE,
-          Math.abs(cx / 10), Math.abs(cy / 10), (cx ? 1 : 0) ^ (cy ? 1 : 0)
-        );
+        if (cx === 0 || cy === 0) {
+          this.strokeSquare(
+            vx+1, vy+1,
+            CHUNK_SIZE-2, CHUNK_SIZE-2,
+            1, 1, 1
+          );
+        }
         this.ctx.textBaseline = "top";
         this.ctx.fillStyle = "black";
         this.ctx.fillText(`${cx}:${cy}`, vx, vy);
