@@ -1,5 +1,7 @@
-import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT } from "./base";
+import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK_SIZE2, CHUNK_SIZEm1 } from "./base";
 import { NPoint, ZERO } from "./lib/NLib/npoint";
+
+type Rect = [number, number, number, number];
 
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
@@ -8,23 +10,36 @@ export default class GridDisplay {
   private world: World | null = null;
   private worldDrawListenerId = -1;
 
+  // viewport origin, measured in pixels
   private viewOrigin: NPoint = ZERO;
+  // viewport origin, measured in chunk coords
+  private viewOriginCh: NPoint = ZERO;
+
   // viewport dimensions, measured in blocks
-  private dims: NPoint = new NPoint(4, 4);
-  private pixelsPerBlock = 2;
+  private dims: NPoint = ZERO;
+  // viewport dimensions, measured in chunks
+  private dimsCh: NPoint = ZERO;
+
+  private pixelsPerBlock = 4;
+  private visiblePadding = -1;
 
   private visibleMin: NPoint | null = null;
   private visibleMax: NPoint | null = null;
 
   private readonly resizeCallbacks: Array<(e: ResizeObserverEntry) => void> = [];
   private resizeFinishTimer: number | undefined = undefined;
-  private isResizing = true;
+  private awaitingResizeEnd = true;
   private resizeHappened = false;
 
+  private redrawLoopRunning = false;
+  private redrawRequested = true;
+  private redrawPending = false;
   /**
    * rectangular regions pending redraw within chunks (local coords)
+   * [-x,-y,+x,+y], inclusive
    */
-  private chunkPendingRects: Map<NPoint, [number, number, number, number]> = new Map();
+  private chunkPendingRects: Map<NPoint, Rect> = new Map();
+  private static readonly FULL_RECT: Rect = [0, 0, CHUNK_SIZEm1, CHUNK_SIZEm1];
 
   constructor() {
     const ctx = this.canvas.getContext("2d");
@@ -39,77 +54,167 @@ export default class GridDisplay {
     // call resizeCallbacks when resizing has stopped
     (new ResizeObserver((es) => {
       window.clearTimeout(this.resizeFinishTimer);
-      this.isResizing = true;
+      this.awaitingResizeEnd = true;
       this.resizeFinishTimer = window.setTimeout(() => {
         this.resizeCallbacks.forEach(c => c(es[0]));
-        this.isResizing = false;
+        this.awaitingResizeEnd = false;
         this.resizeHappened = true;
-      }, 100);
+        this.recalcVisibleChunks();
+      }, 200);
     })).observe(this.canvas);
 
     // add a resizeCallback for setting the canvas dimensions to the element dimensions
     this.resizeCallbacks.push(() => {
       const rect = this.canvas.getBoundingClientRect();
       this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
-
+      this.dimsCh = this.dims.divide1(CHUNK_SIZE);
       this.canvas.width = this.dims.x;
       this.canvas.height = this.dims.y;
       this.recalcVisibleChunks();
     });
 
-    document.addEventListener("mousemove", (e) => {
-      this.viewOrigin = new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock));
-    });
+    // // screen follows mouse
+    // document.addEventListener("mousemove", (e) => {
+    //   this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
+    // });
 
-    // redraw
-    window.setInterval(() => {
-      if (this.isResizing) {
-        return;
-      }
-      this.drawDebugChunks();
-      this.recalcVisibleChunks();
-    }, 100);
+    // // redraw
+    // window.setInterval(() => {
+    //   if (this.isResizing) {
+    //     return;
+    //   }
+    //   // this.drawDebugChunks();
+    //   this.recalcVisibleChunks();
+    // }, 100);
   }
 
   public setViewOrigin(pt: NPoint): NPoint {
     this.viewOrigin = pt;
+    this.viewOriginCh = pt.divide1(this.pixelsPerBlock * CHUNK_SIZE);
     this.recalcVisibleChunks();
     return pt;
   }
 
-  // this is not efficient; replace with more efficient thing later
+  /**
+   * calculuates which chunks are currently visible
+   *  - requests the world to keep visible chunks loaded
+   *  - requests the world to unload chunks that are no longer visible
+   *  - queues a redraw
+   */
   public recalcVisibleChunks(): void {
     if (!this.resizeHappened || this.world === null) {
       return;
     }
-    const vx = (this.viewOrigin.x / this.pixelsPerBlock) / CHUNK_SIZE;
-    const vy = (this.viewOrigin.y / this.pixelsPerBlock) / CHUNK_SIZE;
-    const sx = Math.floor(-vx);
-    const sy = Math.floor(-vy);
-    const ex = Math.floor((this.dims.x / CHUNK_SIZE) - vx);
-    const ey = Math.floor((this.dims.y / CHUNK_SIZE) - vy);
-    const newMin = new NPoint(sx, sy);
-    const newMax = new NPoint(ex, ey);
 
-    if (this.visibleMin === null) {
+    const newMinX = Math.floor(-this.viewOriginCh.x) - this.visiblePadding;
+    const newMinY = Math.floor(-this.viewOriginCh.y) - this.visiblePadding;
+    const newMaxX = Math.floor(this.dimsCh.x - this.viewOriginCh.x) + this.visiblePadding;
+    const newMaxY = Math.floor(this.dimsCh.y - this.viewOriginCh.y) + this.visiblePadding;
+
+    // const loadArea: (minX: number, minY: number, maxX: number, maxY: number) => void = (minX, minY, maxX, maxY) => {
+    //   world.forArea(minX, minY, maxX, maxY, world.requestChunkLoad.bind(world));
+    // };
+    // const unloadArea: (minX: number, minY: number, maxX: number, maxY: number) => void = (minX, minY, maxX, maxY) => {
+    //   world.forArea(minX, minY, maxX, maxY, world.requestChunkUnload.bind(world));
+    // };
+
+    if (this.visibleMin === null || this.visibleMax === null) {
+      this.visibleMin = new NPoint(newMinX, newMinY);
+      this.visibleMax = new NPoint(newMaxX, newMaxY);
+      // console.log(this.visibleMin, this.visibleMax);
+
       // nothing loaded yet; load everything in range
-      this.world.forArea(sx, sy, ex, ey, this.world.requestChunkLoad.bind(this.world));
+      for (let x = newMinX; x <= newMaxX; x++) {
+        for (let y = newMinY; y <= newMaxY; y++) {
+          this.world.requestChunkLoad(x, y);
+          this.requestChunkRedraw(new NPoint(x, y));
+        }
+      }
     } else {
       // something already loaded; update 
-    }
+      const oldMinX = this.visibleMin.x;
+      const oldMinY = this.visibleMin.y;
+      const oldMaxX = this.visibleMax.x;
+      const oldMaxY = this.visibleMax.y;
 
-    this.visibleMin = newMin;
-    this.visibleMax = newMax;
+      if (newMinX !== oldMinX || newMaxX !== oldMaxX || newMinY !== oldMinY || newMaxY !== oldMaxY) {
+        // console.log("-----");
+        // console.log(`old:${oldMinX},${oldMinY} : ${oldMaxX},${oldMaxY}`);
+        // console.log(`new:${newMinX},${newMinY} : ${newMaxX},${newMaxY}`);
+        for (let x = oldMinX; x <= oldMaxX; x++) {
+          for (let y = oldMinY; y <= oldMaxY; y++) {
+            if (x < newMinX || x > newMaxX || y < newMinY || y > newMaxY) {
+              this.world.requestChunkUnload(x, y);
+              this.cancelChunkRedraw(new NPoint(x, y));
+            }
+          }
+        }
+        for (let x = newMinX; x <= newMaxX; x++) {
+          for (let y = newMinY; y <= newMaxY; y++) {
+            if (x < oldMinX || x > oldMaxX || y < oldMinY || y > oldMaxY) {
+              this.world.requestChunkLoad(x, y);
+              this.requestChunkRedraw(new NPoint(x, y));
+            }
+          }
+        }
+      }
+    }
+    this.visibleMin = new NPoint(newMinX, newMinY);
+    this.visibleMax = new NPoint(newMaxX, newMaxY);
   }
 
-  public link(world: World): void {
-    this.unlink();
-    this.world = world;
+  private requestChunkRedraw(chunkCoord: NPoint) {
+    // console.log(chunkCoord);
+    this.chunkPendingRects.set(chunkCoord, GridDisplay.FULL_RECT);
+  }
 
-    this.world.registerRedrawListener((chunk, i) => {
+  private cancelChunkRedraw(chunkCoord: NPoint) {
+    this.chunkPendingRects.delete(chunkCoord);
+  }
 
-    });
-    this.recalcVisibleChunks();
+  private queueBlockRedraw(chunk: Chunk, i: BlockId) {
+    this.redrawRequested = true;
+    const x = i & CHUNK_MODMASK;
+    const y = i >>> CHUNK_BITSHIFT;
+    const chunkCoord = chunk.coord;
+    const rect = this.chunkPendingRects.get(chunkCoord);
+    if (rect === undefined) {
+      this.chunkPendingRects.set(chunkCoord, [x, y, x, y]);
+    } else {
+      rect[0] = Math.min(x, rect[0]);
+      rect[1] = Math.min(y, rect[1]);
+      rect[2] = Math.max(x, rect[2]);
+      rect[3] = Math.max(y, rect[3]);
+    }
+  }
+
+  private redrawBlock(chunk: Chunk, i: BlockId) {
+    if (this.world === null) {
+      throw "Cannot redraw block when world is null!";
+      return;
+    }
+  }
+
+  public startDrawLoop(): void {
+    if (this.redrawLoopRunning) {
+      return;
+    }
+
+    const boundIteration = this.drawLoopIteration.bind(this);
+    window.setInterval(() => {
+      if (this.redrawRequested && !this.redrawPending) {
+        this.redrawRequested = false;
+        this.redrawPending = true;
+        window.requestAnimationFrame(boundIteration);
+      }
+    }, ~~(1000 / 30));
+
+    this.redrawLoopRunning = true;
+  }
+
+  private drawLoopIteration(): void {
+    console.log("loop");
+    this.redrawPending = false;
   }
 
   public unlink(): void {
@@ -120,6 +225,14 @@ export default class GridDisplay {
     this.world = null;
   }
 
+  public link(world: World): void {
+    this.unlink();
+    this.world = world;
+
+    this.world.registerRedrawListener(this.queueBlockRedraw);
+    this.recalcVisibleChunks();
+  }
+
   drawDebugChunks(): void {
     if (this.world === null) {
       return;
@@ -127,11 +240,11 @@ export default class GridDisplay {
 
     const vox = this.viewOrigin.x / this.pixelsPerBlock;
     const voy = this.viewOrigin.y / this.pixelsPerBlock;
-    const vodX = vox >> CHUNK_BITSHIFT;
-    const vodY = voy >> CHUNK_BITSHIFT;
+    const vodX = vox >>> CHUNK_BITSHIFT;
+    const vodY = voy >>> CHUNK_BITSHIFT;
 
-    for (let x = -1; x < this.dims.x / CHUNK_SIZE; x++) {
-      for (let y = -1; y < this.dims.y / CHUNK_SIZE; y++) {
+    for (let x = -1; x < this.dims.x >>> CHUNK_BITSHIFT; x++) {
+      for (let y = -1; y < this.dims.y >>> CHUNK_BITSHIFT; y++) {
         const vx = ~~(x * CHUNK_SIZE + (vox & CHUNK_MODMASK));
         const vy = ~~(y * CHUNK_SIZE + (voy & CHUNK_MODMASK));
 
@@ -147,8 +260,8 @@ export default class GridDisplay {
 
         if (cx === 0 || cy === 0) {
           this.strokeSquare(
-            vx+1, vy+1,
-            CHUNK_SIZE-2, CHUNK_SIZE-2,
+            vx + 1, vy + 1,
+            CHUNK_SIZE - 2, CHUNK_SIZE - 2,
             1, 1, 1
           );
         }

@@ -30,7 +30,7 @@ const bt_air = new BlockType({
 
 const bt_stone = new BlockType({
   name: "stone",
-  color: new Color(0.9, 1, 1),
+  color: new Color(0.1, 0.1, 0.1),
 });
 
 const world = new World((w: World) => new CheckerGen(w));
@@ -39,8 +39,9 @@ world.addBlockType(bt_stone);
 world.init();
 
 const mainDisplay = new GridDisplay();
-mainDisplay.link(world);
 mainDisplay.canvas.style.width = "100%";
 mainDisplay.canvas.style.height = "100%";
 mainDisplay.canvas.style.border = "2px solid black";
 document.body.appendChild(mainDisplay.canvas);
+mainDisplay.link(world);
+mainDisplay.startDrawLoop();

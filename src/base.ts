@@ -1,8 +1,10 @@
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 import { Color } from "./library";
 
+// various common derivations of chunk size
 export const CHUNK_BITSHIFT = 5;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
+// export const CHUNK_INVSIZE = 1 / CHUNK_SIZE;
 export const CHUNK_MODMASK = CHUNK_SIZE - 1; // 0b11111
 export const CHUNK_SIZEm1 = CHUNK_SIZE - 1;
 export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
@@ -109,10 +111,12 @@ export class Chunk {
   public readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
   public readonly x: number;
   public readonly y: number;
+  public readonly coord: NPoint;
 
   constructor(x: number, y: number, types: Grid16) {
     this.x = x;
     this.y = y;
+    this.coord = new NPoint(x, y);
     this.types = types;
   }
 
@@ -129,7 +133,7 @@ export class Chunk {
   }
 
   public static coordToIndex(x: number, y: number): number {
-    return x * CHUNK_SIZE + y;
+    return (x << CHUNK_BITSHIFT) + y;
   }
 
   /**
@@ -272,7 +276,7 @@ export class World {
     const ch = NPoint.toHash(x, y);
     const newCount = 1 + (this.chunkLoadRequests.get(ch) ?? 0);
     this.chunkLoadRequests.set(ch, newCount);
-    if(newCount === 1){
+    if (newCount === 1) {
       this.acquireChunk(x, y);
     }
   }
@@ -285,10 +289,10 @@ export class World {
       return;
     }
 
-    if(count === 1){
+    if (count === 1) {
       this.chunkLoadRequests.delete(ch);
       this.loadedChunks.delete(ch);
-    }else{
+    } else {
       this.chunkLoadRequests.set(ch, count - 1);
     }
   }
