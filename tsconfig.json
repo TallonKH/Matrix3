@@ -3,7 +3,7 @@
     "outDir": "./dist/",
     "noImplicitAny": true,
     "sourceMap": true,
-    "module": "es6",
+    "module": "ES2020",
     "target": "es5",
     "allowJs": true,
     "lib": [
@@ -12,5 +12,6 @@
     ],
     "downlevelIteration": true,
     "strictNullChecks": true,
+    "moduleResolution": "Node",
   }
 }

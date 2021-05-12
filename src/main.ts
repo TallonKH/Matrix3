@@ -25,12 +25,12 @@ class CheckerGen extends WorldGenerator {
 
 const bt_air = new BlockType({
   name: "air",
-  color: new Color(0.9, 1, 1),
+  color: new Color(0.9, 0, 1),
 });
 
 const bt_stone = new BlockType({
   name: "stone",
-  color: new Color(0.1, 0.1, 0.1),
+  color: new Color(0.1, 0, 0.1),
 });
 
 const world = new World((w: World) => new CheckerGen(w));

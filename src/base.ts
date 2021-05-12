@@ -4,10 +4,22 @@ import { Color } from "./library";
 // various common derivations of chunk size
 export const CHUNK_BITSHIFT = 5;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
-// export const CHUNK_INVSIZE = 1 / CHUNK_SIZE;
+/**
+ * for use in quick modulo
+ * n & CHUNK_MODMASK == n % CHUNK_SIZE
+ */
 export const CHUNK_MODMASK = CHUNK_SIZE - 1; // 0b11111
+/**
+ * Chunk size minus one
+ */
 export const CHUNK_SIZEm1 = CHUNK_SIZE - 1;
+/**
+ * Chunk size squared
+ */
 export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
+/**
+ * Chunk size squared, minus 1
+ */
 export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
 
 export type ChunkCoord = NPoint;
@@ -410,6 +422,10 @@ export class World {
 
   public getChunk(x: number, y: number): Chunk | undefined {
     return this.loadedChunks.get(NPoint.toHash(x, y));
+  }
+
+  public getChunkByHash(h: string): Chunk | undefined {
+    return this.loadedChunks.get(h);
   }
   public isChunkLoaded(x: number, y: number): boolean {
     return this.loadedChunks.has(NPoint.toHash(x, y));
