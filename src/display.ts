@@ -1,11 +1,9 @@
 import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK_SIZE2, CHUNK_SIZEm1 } from "./base";
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
-import { GPU } from "gpu.js";
+// import { GPU } from "gpu.js";
 
 // minX, minY, maxX, maxY
 type Rect = [number, number, number, number];
-
-const gpu = new GPU();
 
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
@@ -24,7 +22,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 4;
+  private pixelsPerBlock = 6;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -243,7 +241,9 @@ export default class GridDisplay {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkColorData = this.cachedChunkColorData.get(NPoint.toHash(x, y));
         if (chunkColorData !== undefined) {
-          this.ctx.putImageData(chunkColorData, (x * CHUNK_SIZE) + this.viewOrigin.x  / this.pixelsPerBlock, (y * CHUNK_SIZE) + this.viewOrigin.y / this.pixelsPerBlock);
+          this.ctx.putImageData(chunkColorData, 
+            Math.floor(x * CHUNK_SIZE + this.viewOrigin.x  / this.pixelsPerBlock), 
+            Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock));
           // console.log(chunkColorData);
         }
       }
