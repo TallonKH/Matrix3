@@ -2,7 +2,7 @@ import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 // import { GPU } from "gpu.js";
 
-// minX, minY, maxX, maxY
+// [minX, minY, maxX, maxY], inclusive
 type Rect = [number, number, number, number];
 
 export default class GridDisplay {
@@ -22,7 +22,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 6;
+  private pixelsPerBlock = 2;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -217,7 +217,7 @@ export default class GridDisplay {
         this.redrawPending = true;
         window.requestAnimationFrame(boundIteration);
       }
-    }, ~~(1000 / 30));
+    }, ~~(1000 / 60));
 
     this.redrawLoopRunning = true;
   }
@@ -236,7 +236,7 @@ export default class GridDisplay {
       throw "can't render view when visiblemin/max are null!";
     }
     this.ctx.clearRect(0,0,this.dims.x, this.dims.y);
-    // console.log(this.visibleMin + " : " + this.visibleMax);
+    
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkColorData = this.cachedChunkColorData.get(NPoint.toHash(x, y));
@@ -244,7 +244,6 @@ export default class GridDisplay {
           this.ctx.putImageData(chunkColorData, 
             Math.floor(x * CHUNK_SIZE + this.viewOrigin.x  / this.pixelsPerBlock), 
             Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock));
-          // console.log(chunkColorData);
         }
       }
     }
@@ -266,16 +265,16 @@ export default class GridDisplay {
     if (chunk === undefined) {
       throw "can't redraw chunk that's undefined!";
     }
-
-    for (let x = 0; x < w; x++) {
-      for (let y = 0; y < h; y++) {
+    // use <= because rects are inclusive
+    for (let x = 0; x <= w; x++) {
+      for (let y = 0; y <= h; y++) {
         const blockType = this.world.getBlockType(chunk.types[x + (y << CHUNK_BITSHIFT)]);
         const blockIndex = (x + xi) + ((y + yi) << CHUNK_BITSHIFT);
         const colIndex = blockIndex << 2; 
         const color = blockType.shader(this.world, chunk, blockIndex);
-        colors.data[colIndex + 0] = color.r;
-        colors.data[colIndex + 1] = color.g;
-        colors.data[colIndex + 2] = color.b;
+        colors.data[colIndex + 0] = ~~(color.r*255);
+        colors.data[colIndex + 1] = ~~(color.g*255);
+        colors.data[colIndex + 2] = ~~(color.b*255);
         colors.data[colIndex + 3] = 255;
       }
     }
@@ -295,54 +294,6 @@ export default class GridDisplay {
 
     this.world.registerRedrawListener(this.queueBlockRedraw);
     this.recalcVisibleChunks();
-  }
-
-  drawDebugChunks(): void {
-    if (this.world === null) {
-      return;
-    }
-
-    const vox = this.viewOrigin.x;
-    const voy = this.viewOrigin.y;
-    for (const chunkCo of this.chunkPendingRects) {
-      // console.log(chunkCo[0] + " : " + chunkCo[1]);
-    }
-
-    // const vox = this.viewOrigin.x / this.pixelsPerBlock;
-    // const voy = this.viewOrigin.y / this.pixelsPerBlock;
-    // const vodX = vox >> CHUNK_BITSHIFT;
-    // const vodY = voy >> CHUNK_BITSHIFT;
-
-    // for (let x = -1; x < this.dims.x >> CHUNK_BITSHIFT; x++) {
-    //   for (let y = -1; y < this.dims.y >> CHUNK_BITSHIFT; y++) {
-    //     const vx = ~~(x * CHUNK_SIZE + (vox & CHUNK_MODMASK));
-    //     const vy = ~~(y * CHUNK_SIZE + (voy & CHUNK_MODMASK));
-
-    //     const cx = x - vodX;
-    //     const cy = y - vodY;
-
-    //     const exists = this.world.isChunkLoaded(cx, cy);
-    //     this.fillSquare(
-    //       vx, vy,
-    //       CHUNK_SIZE, CHUNK_SIZE,
-    //       exists ? 0 : 1, exists ? 1 : 0, (cx & 1) ^ (cy & 1)
-    //     );
-
-    //     if (cx === 0 || cy === 0) {
-    //       this.strokeSquare(
-    //         vx + 1, vy + 1,
-    //         CHUNK_SIZE - 2, CHUNK_SIZE - 2,
-    //         1, 1, 1
-    //       );
-    //     }
-    //     this.ctx.textBaseline = "top";
-    //     this.ctx.fillStyle = "black";
-    //     this.ctx.fillText(`${cx}:${cy}`, vx, vy);
-    //     // this.ctx.textBaseline = "top";
-    //     // this.ctx.fillStyle = "red";
-    //     // this.ctx.fillText(`${vx}:${vy}`, vx, vy + 8);
-    //   }
-    // }
   }
 
   public fillSquare(x: number, y: number, w: number, h: number, r: number, g: number, b: number): void {

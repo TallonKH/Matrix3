@@ -25,12 +25,12 @@ class CheckerGen extends WorldGenerator {
 
 const bt_air = new BlockType({
   name: "air",
-  color: new Color(0.9, 0, 1),
+  color: new Color(0.9, 0.95, 1),
 });
 
 const bt_stone = new BlockType({
   name: "stone",
-  color: new Color(0.1, 0, 0.1),
+  color: new Color(0.4, 0.4, 0.4),
 });
 
 const world = new World((w: World) => new CheckerGen(w));
@@ -42,6 +42,7 @@ const mainDisplay = new GridDisplay();
 mainDisplay.canvas.style.width = "100%";
 mainDisplay.canvas.style.height = "100%";
 mainDisplay.canvas.style.border = "2px solid black";
+mainDisplay.canvas.style.background = "linear-gradient(0deg, rgba(0,255,0,1) 0%, rgba(255,0,0,1) 100%)";
 document.body.appendChild(mainDisplay.canvas);
 mainDisplay.link(world);
 mainDisplay.startDrawLoop();

@@ -2,7 +2,7 @@ import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 import { Color } from "./library";
 
 // various common derivations of chunk size
-export const CHUNK_BITSHIFT = 5;
+export const CHUNK_BITSHIFT = 6;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
 /**
  * for use in quick modulo
@@ -260,6 +260,7 @@ export class World {
     }
 
     this.worldGen = this.worldGenGen(this);
+    this.worldGen.runInit();
     this.initialized = true;
     return true;
   }
