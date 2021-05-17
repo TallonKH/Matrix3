@@ -475,7 +475,6 @@ export class World {
       }
       chunk.applyNexts();
     }
-    // console.log("tick done");
 
     // apply/flush the pendingPending buffer
     for (const [, chunk] of this.loadedChunks) {
