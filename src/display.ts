@@ -1,4 +1,4 @@
-import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK_SIZEm1, CHUNK_SIZE2, UpdateFlags } from "./base";
+import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, CHUNK_SIZEm1, CHUNK_SIZE2, UpdateFlags, Chunk } from "./base";
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 // import { GPU } from "gpu.js";
 
@@ -9,7 +9,7 @@ export enum RedrawMode {
   SMART = 0,
   ALWAYS = 1,
   FLAGS = 2,
-}export default class GridDisplay {
+} export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
 
   private ctx: CanvasRenderingContext2D;
@@ -26,7 +26,7 @@ export enum RedrawMode {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 20;
+  private pixelsPerBlock = 4;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -58,9 +58,10 @@ export enum RedrawMode {
   private cachedChunkColorData: Map<PointStr, ImageData> = new Map();
 
   //TODO make this not-readonly (need to create a new interval)
-  private readonly targetFPS = 60;
+  private readonly targetFPS;
 
-  constructor() {
+  constructor(targetFps = 60) {
+    this.targetFPS = targetFps;
     const ctx = this.canvas.getContext("2d");
     if (ctx === null) {
       throw "failed to get canvas context";
@@ -183,11 +184,11 @@ export enum RedrawMode {
    * in reality, this function just queues a chunk redraw
    * (and more important, updates the dirty rect within that chunk)
    */
-  private queueBlockRedraw(chunk: Chunk, i: BlockId) {
+  private queueBlockRedraw(chunk: Chunk, i: number) {
     this.redrawRequested |= 4;
     const x = i & CHUNK_MODMASK;
     const y = i >> CHUNK_BITSHIFT;
-    
+
     const chunkCoord = chunk.coord;
 
     const hash = chunkCoord.toHash();
@@ -266,7 +267,7 @@ export enum RedrawMode {
 
       switch (mode) {
         case RedrawMode.ALWAYS: {
-          const blockType = this.world.getBlockType(chunk.getBlockType(i));
+          const blockType = this.world.getBlockType(chunk.getTypeOfBlock(i));
           const color = blockType.shader(this.world, chunk, i, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT);
 
           colors.data[colIndex + 0] = ~~(color.r * 255);
@@ -276,9 +277,9 @@ export enum RedrawMode {
           break;
         }
         case RedrawMode.FLAGS: {
-          colors.data[colIndex + 0] = chunk.getFlag(i, UpdateFlags.PENDING_TICK) ? 100 : 0;
-          colors.data[colIndex + 1] = chunk.getFlag(i, UpdateFlags.PENDING_REDRAW) ? 100 : 0;
-          colors.data[colIndex + 2] = chunk.getFlag(i, UpdateFlags.LOCKED) ? 100 : 0;
+          colors.data[colIndex + 0] = chunk.getFlagOfBlock(i, UpdateFlags.PENDING_TICK) ? 100 : 0;
+          colors.data[colIndex + 1] = chunk.getFlagOfBlock(i, UpdateFlags.PENDING_REDRAW) ? 100 : 0;
+          colors.data[colIndex + 2] = chunk.getFlagOfBlock(i, UpdateFlags.LOCKED) ? 100 : 0;
           colors.data[colIndex + 3] = 255;
           break;
         }
@@ -307,7 +308,7 @@ export enum RedrawMode {
     for (let x = 0; x <= w; x++) {
       for (let y = 0; y <= h; y++) {
         const blockIndex = (x + xi) + ((y + yi) << CHUNK_BITSHIFT);
-        const blockType = this.world.getBlockType(chunk.getBlockType(blockIndex));
+        const blockType = this.world.getBlockType(chunk.getTypeOfBlock(blockIndex));
         const color = blockType.shader(this.world, chunk, blockIndex, x, y);
 
         const colIndex = blockIndex << 2;

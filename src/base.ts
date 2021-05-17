@@ -2,7 +2,7 @@ import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 import { Color, mixRands } from "./library";
 // import {GPU} from "gpu.js";
 // various common derivations of chunk size
-export const CHUNK_BITSHIFT = 2;
+export const CHUNK_BITSHIFT = 6;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
 /**
  * for use in quick modulo
@@ -25,30 +25,48 @@ export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
 export type GlobalCoord = NPoint;
 export type LocalCoord = NPoint;
 
-export type BlockId = number;
-
 type Grid8 = Uint8Array;
 type Grid16 = Uint16Array;
 type Grid32 = Uint32Array;
 
-
+// TODO replace this with a GPU system
+/**
+ * 
+ * a few base shader types
+ *  - id interp [min, max, curvature (-1=only middle, -0.5=normal-ish, 0=uniform, 0.5=inverse normal-ish, 1=only ends)]
+ *       (gravel, dirt, air (min=max), etc)
+ *  - x/y/time perlin [min, max, curvature, x_scale, y_scale, time_scale]
+ *      (water, steam, stone (time_scale=0))
+ * each shader simply adds the previous shader
+ * 
+ * shaders are expected to output 0,0,0 for blocks that are not of the appropriate type
+ */
+// Block Shaders
 type BlockShader = (world: World, chunk: Chunk, i: number, x: number, y: number) => Color;
 export const shaderSolid: (color: Color) => BlockShader
   = (color: Color) =>
     () => color;
 export const shaderLerp: (colorA: Color, colorB: Color) => BlockShader
   = (colorA: Color, colorB: Color) =>
-    (_, chunk, i) => Color.lerp(colorA, colorB, chunk.getBlockId(i) / 255);
+    (_, chunk, i) => Color.lerp(colorA, colorB, chunk.getIdOfBlock(i) / 255);
 
-type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
+// Block Tick Behavior
+export type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
 // eslint-disable-next-line no-empty-function
 export const updateStatic: TickBehavior = () => { };
+
+// Block Density Function
+export type DensityFunc = (world: World, chunk: Chunk, index: number) => number;
+export const densityConstant: (val: number) => DensityFunc = (val) => (() => val);
+
+export type BlockData = { creationTime: number, id: number, type: number };
 
 interface BlockTypeArgs {
   name: string,
   color: Color,
   shader?: BlockShader,
   tickBehaviorGen?: (world: World) => TickBehavior,
+  densityFunc?: DensityFunc,
 }
 
 export class BlockType {
@@ -57,17 +75,21 @@ export class BlockType {
   public readonly shader: BlockShader;
   public readonly tickBehaviorGen?: (world: World) => TickBehavior;
   private tickBehavior: TickBehavior;
+  private densityFunc: DensityFunc;
   private initialized = false;
 
-  constructor({ name, color, shader, tickBehaviorGen }: BlockTypeArgs) {
+  constructor({ name, color, shader, tickBehaviorGen, densityFunc }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.shader = shader ?? shaderSolid(this.color);
     this.tickBehaviorGen = tickBehaviorGen;
     this.tickBehavior = updateStatic;
+    this.densityFunc = densityFunc ?? densityConstant(255);
   }
 
   public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);
+
+  public getDensity: DensityFunc = (world: World, chunk: Chunk, index: number) => this.densityFunc(world, chunk, index);
 
   public init(world: World): void {
     if (this.initialized) {
@@ -126,7 +148,6 @@ const NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
  * Chunk shouldn't contain any real logic.
  */
 export class Chunk {
-
   public pendingTick = false;
   // store by id, not coord
   public blocksPendingTick: Array<number> = [];
@@ -154,19 +175,24 @@ export class Chunk {
   public readonly y: number;
   public readonly coord: NPoint;
 
-  constructor(x: number, y: number, types: Grid16) {
+  constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
     this.coord = new NPoint(x, y);
-    this.types = types;
+  }
 
-    // populate ids with randoms
-    let rand = mixRands(x, y);
-    for (let i = 0; i < CHUNK_SIZE2; i++) {
-      rand = mixRands(rand, i);
-      this.ids[i] = rand;
-    }
-    rand = 0;
+  public getBlockData(i: number): BlockData {
+    return {
+      creationTime: this.creationTimes[i],
+      id: this.ids[i],
+      type: this.types[i],
+    };
+  }
+
+  public setNextBlockData(i: number, data: BlockData): void {
+    this.creationTimesNext[i] = data.creationTime;
+    this.idsNext[i] = data.id;
+    this.typesNext[i] = data.type;
   }
 
   public applyNexts(): void {
@@ -182,7 +208,7 @@ export class Chunk {
     this.typesNext.set(this.types);
   }
 
-  public getBlockId(index: number): number {
+  public getIdOfBlock(index: number): number {
     return this.ids[index];
   }
 
@@ -190,41 +216,49 @@ export class Chunk {
     this.idsNext[index] = id;
   }
 
-  public getBlockType(index: number): number {
+  public getTypeOfBlock(index: number): number {
     return this.types[index];
   }
 
-  // TODO this is temporary
+  /**
+   * Don't mess with this unless you know what you're doing.
+   */
   public getBlockTypes(): Uint16Array {
     return this.types;
   }
 
-  // TODO this is temporary
+  /**
+   * Don't mess with this unless you know what you're doing.
+   */
+  public getBlockIds(): Uint8Array {
+    return this.ids;
+  }
+
   public getNextBlockTypes(): Uint16Array {
     return this.typesNext;
   }
 
-  public setNextBlockType(index: number, id: number): void {
+  public setNextTypeOfBlock(index: number, id: number): void {
     this.typesNext[index] = id;
   }
 
-  public getBlockCreationTime(index: number): number {
+  public getCreationTimeOfBlock(index: number): number {
     return this.creationTimes[index];
   }
 
-  public setNextBlockCreationTime(index: number, id: number): void {
+  public setNextCreationTimeOfBlock(index: number, id: number): void {
     this.creationTimesNext[index] = id;
   }
 
-  public getFlag(index: number, flag: UpdateFlags): boolean {
+  public getFlagOfBlock(index: number, flag: UpdateFlags): boolean {
     return ((this.flags[index] >> flag) & 1) === 1;
   }
 
-  public setFlagOn(index: number, flag: UpdateFlags): void {
+  public setBlockFlagOn(index: number, flag: UpdateFlags): void {
     this.flags[index] |= (1 << flag);
   }
 
-  public setFlagOff(index: number, flag: UpdateFlags): void {
+  public setBlockFlagOff(index: number, flag: UpdateFlags): void {
     this.flags[index] &= ~(1 << flag);
   }
 
@@ -247,6 +281,17 @@ export class Chunk {
         }
       }
     }
+  }
+
+  /**
+   * Get the local coords and chunk of a block that is either within this chunk or within a neighboring chunk
+   * @param i index of the local coordinate
+   * @param x offset relative to the local block
+   * @param y offset relative to the local block
+   * @returns [chunk that contains block, index of block within that chunk]
+   */
+  public getNearIndexI(i: number, xo: number, yo: number): [Chunk, number] | null {
+    return this.getNearIndex((i & CHUNK_MODMASK) + xo, (i >> CHUNK_BITSHIFT) + yo);
   }
 
   /**
@@ -300,7 +345,7 @@ export abstract class WorldGenerator {
 
   protected abstract init(): boolean;
 
-  public abstract generate(world: World, x: number, y: number): Chunk;
+  public abstract generate(world: World, x: number, y: number, chunk: Chunk): void;
 }
 
 /**
@@ -310,9 +355,9 @@ class MissingWorldGen extends WorldGenerator {
   public init(): boolean {
     return true;
   }
-  public generate(world: World, x: number, y: number): Chunk {
+
+  public generate(world: World, x: number, y: number, chunk: Chunk): void {
     // block type 0 = bt_missing
-    return new Chunk(x, y, new Uint16Array(CHUNK_SIZE2));
   }
 
 }
@@ -323,17 +368,18 @@ export class World {
   private readonly worldGenGen: (world: World) => WorldGenerator;
   private worldGen?: WorldGenerator;
   private readonly blockTypes: Array<BlockType> = [];
-  private readonly blockTypeMap: Map<string, BlockId> = new Map();
+  private readonly blockTypeMap: Map<string, number> = new Map();
   private time = 0;
   private rand = 1;
   private ticking = false;
   private initialized = false;
+  private readonly targetFps: number;
 
   private redrawListenerCounter = 0;
   private redrawListeners: Map<number, (chunk: Chunk, i: number) => void> = new Map();
 
   constructor(worldGenGen: (world: World) => WorldGenerator) {
-    this.addBlockType(bt_missing);
+    this.registerBlockType(bt_missing);
     this.worldGenGen = worldGenGen ?? ((world: World) => new MissingWorldGen(world));
   }
 
@@ -352,7 +398,7 @@ export class World {
     return true;
   }
 
-  public startTickLoop(): void {
+  public startTickLoop(targetTickrate: number): void {
     if (this.ticking) {
       throw "already ticking!";
     }
@@ -360,42 +406,53 @@ export class World {
 
     window.setInterval(() => {
       this.performGlobalTick();
-    }, ~~(1000 / 5));
+    }, ~~(1000 / targetTickrate));
   }
 
-  public setBlockTypeNew(chunk: Chunk, i: number, typeId: number, force = false): void {
-    if (force || !chunk.getFlag(i, UpdateFlags.LOCKED)) {
+  public getTypeOfBlock(chunk: Chunk, i: number): number {
+    return chunk.getTypeOfBlock(i);
+  }
+
+  public setBlockData(chunk: Chunk, i:number, data: BlockData): void {
+    chunk.setNextBlockData(i, data);
+    chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
+    this.requestBlockRedraw(chunk, i);
+    this.queueNeighbors(chunk, i, true);
+  }
+
+  public trySetTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
+    if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // reset creation time
-      chunk.setNextBlockCreationTime(i, this.time);
+      chunk.setNextCreationTimeOfBlock(i, this.time);
       // reset id
       this.rand = mixRands(this.rand, i + this.time);
       chunk.setNextBlockId(i, mixRands(this.rand, i) & 0b11111111);
       // actually set type
-      this.setBlockTypeMutate(chunk, i, typeId, true);
+      this.tryMutateTypeOfBlock(chunk, i, typeId, true);
     }
   }
 
-  public setBlockTypeMutate(chunk: Chunk, i: number, typeId: number, force = false): void {
-    if(force || !chunk.getFlag(i, UpdateFlags.LOCKED)){
+  public tryMutateTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
+    if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // set type (for the next iteration)
-      chunk.setNextBlockType(i, typeId);
-      chunk.setFlagOn(i, UpdateFlags.LOCKED);
-      
+      chunk.setNextTypeOfBlock(i, typeId);
+      chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
+
       this.requestBlockRedraw(chunk, i);
-      this.queueNeighbors(chunk, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT, true);
+      this.queueNeighbors(chunk, i, true);
     }
   }
 
   public queueBlock(chunk: Chunk, i: number): void {
-    if (!chunk.getFlag(i, UpdateFlags.PENDING_TICK)) {
+    if (!chunk.getFlagOfBlock(i, UpdateFlags.PENDING_TICK)) {
       chunk.pendingTick = true;
-      chunk.setFlagOn(i, UpdateFlags.PENDING_TICK);
+      chunk.setBlockFlagOn(i, UpdateFlags.PENDING_TICK);
       chunk.blocksPendingPendingTick.push(i);
     }
   }
 
-  public queueNeighbors(chunk: Chunk, x: number, y: number, enqueueSelf = true): void {
-    chunk.forEachNeighbor(x, y, this.queueBlock, enqueueSelf);
+  public queueNeighbors(chunk: Chunk, i: number, enqueueSelf = true): void {
+    chunk.forEachNeighbor(i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT, this.queueBlock, enqueueSelf);
   }
 
   public forArea(ax: number, ay: number, bx: number, by: number, f: (x: number, y: number) => void): void {
@@ -466,7 +523,7 @@ export class World {
         continue;
       }
       for (const i of chunk.blocksPendingTick) {
-        this.blockTypes[chunk.getBlockType(i)].doTick(this, chunk, i);
+        this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
       }
     }
     for (const [, chunk] of this.loadedChunks) {
@@ -489,19 +546,39 @@ export class World {
     this.time++;
   }
 
+  /**
+   * get a BlockType's index from its name
+   */
   public getBlockTypeIndex(name: string): number | undefined {
     return this.blockTypeMap.get(name);
   }
 
+  /**
+   * get a reference to a BlockType by its index
+   */
   public getBlockType(index: number): BlockType {
     return this.blockTypes[index];
   }
 
-  public addBlockType(type: BlockType): undefined | BlockId {
+  public getDensityOfBlock(chunk: Chunk, index:number): number {
+    return this.getBlockType(chunk.getTypeOfBlock(index)).getDensity(this, chunk, index);
+  }
+
+
+  public getRandom(): number {
+    this.rand = mixRands(this.rand, this.time);
+    return this.rand;
+  }
+
+  public getRandomFloat(): number {
+    return this.getRandom() / 0xffffffff;
+  }
+
+  public registerBlockType(type: BlockType): undefined | number {
     if (this.blockTypeMap.has(type.name)) {
       return undefined;
     }
-    const blockId: BlockId = this.blockTypes.length;
+    const blockId: number = this.blockTypes.length;
     this.blockTypeMap.set(type.name, blockId);
     this.blockTypes.push(type);
     return blockId;
@@ -535,8 +612,19 @@ export class World {
     }
 
     // create new chunk
+    const newChunk = new Chunk(x, y);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const newChunk = this.worldGen!.generate(this, x, y);
+    this.worldGen!.generate(this, x, y, newChunk);
+
+    // randomize ids
+    let rand = mixRands(x, y);
+    const ids = newChunk.getBlockIds();
+    for (let i = 0; i < CHUNK_SIZE2; i++) {
+      rand = mixRands(rand, i);
+      ids[i] = rand;
+    }
+    rand = 0;
+
     for (let i = 0; i < CHUNK_SIZE2; i++) {
       this.queueBlock(newChunk, i);
     }

@@ -1,12 +1,12 @@
-import { Chunk, CHUNK_SIZE2, World, WorldGenerator, BlockId, BlockType, shaderLerp, UpdateFlags, CHUNK_MODMASK, CHUNK_BITSHIFT, CHUNK_SIZE, CHUNK_SIZE2m1 } from "./base";
+import { Chunk, World, WorldGenerator, BlockType, shaderLerp, densityConstant, updateStatic } from "./base";
 import GridDisplay, { RedrawMode } from "./display";
-import { NPoint } from "./lib/NLib/npoint";
 import { Color } from "./library";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { updateCascade, updateCrumble, updateFall } from "./tick-behaviors";
 
 class CheckerGen extends WorldGenerator {
-  private typeA: BlockId = 0;
-  private typeB: BlockId = 0;
-  private typeC: BlockId = 0;
+  private typeA = 0;
+  private typeB = 0;
   constructor(world: World) {
     super(world);
   }
@@ -17,34 +17,29 @@ class CheckerGen extends WorldGenerator {
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 
-  public generate(_world: World, x: number, y: number): Chunk {
-    const grid = new Uint16Array(CHUNK_SIZE2);
+  public generate(_world: World, x: number, y: number, chunk: Chunk): void {
+    const grid = chunk.getBlockTypes();
     grid.fill((x & 1) ^ (y & 1) ? this.typeA : this.typeB);
-    return new Chunk(x, y, grid);
   }
 }
 
 const bt_air = new BlockType({
   name: "air",
   color: new Color(0.9, 0.95, 1),
+  densityFunc: densityConstant(10),
 });
 
 const bt_stone = new BlockType({
   name: "stone",
   color: new Color(0.4, 0.4, 0.4),
   shader: shaderLerp(new Color(0.35, 0.35, 0.35), new Color(0.45, 0.45, 0.45)),
-});
-
-const bt_updatium = new BlockType({
-  name: "updatium",
-  color: new Color(0.4, 0.4, 0.4),
-  shader: (_, chunk, i) => chunk.getFlag(i, UpdateFlags.PENDING_TICK) ? new Color(0, 1, 0) : new Color(1, 0, 0),
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: () => updateCrumble(updateStatic),
 });
 
 const world = new World((w: World) => new CheckerGen(w));
-world.addBlockType(bt_air);
-world.addBlockType(bt_stone);
-world.addBlockType(bt_updatium);
+world.registerBlockType(bt_air);
+world.registerBlockType(bt_stone);
 world.init();
 
 const mainDisplay = new GridDisplay();
@@ -66,7 +61,7 @@ flagDisplay.link(world);
 // world.requestChunkLoad(1, 1);
 // mainDisplay.requestChunkRedraw(new NPoint(1, 1));
 
-world.startTickLoop();
+world.startTickLoop(30);
 
 mainDisplay.startDrawLoop();
 // window.setInterval(() => {
