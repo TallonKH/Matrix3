@@ -42,13 +42,10 @@ type Grid32 = Uint32Array;
  * shaders are expected to output 0,0,0 for blocks that are not of the appropriate type
  */
 // Block Shaders
-type BlockShader = (world: World, chunk: Chunk, i: number, x: number, y: number) => Color;
+export type BlockShader = (world: World, chunk: Chunk, i: number, x: number, y: number) => Color;
 export const shaderSolid: (color: Color) => BlockShader
   = (color: Color) =>
     () => color;
-export const shaderLerp: (colorA: Color, colorB: Color) => BlockShader
-  = (colorA: Color, colorB: Color) =>
-    (_, chunk, i) => Color.lerp(colorA, colorB, chunk.getIdOfBlock(i) / 255);
 
 // Block Tick Behavior
 export type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
@@ -523,7 +520,9 @@ export class World {
         continue;
       }
       for (const i of chunk.blocksPendingTick) {
-        this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
+        if(!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)){
+          this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
+        }
       }
     }
     for (const [, chunk] of this.loadedChunks) {
