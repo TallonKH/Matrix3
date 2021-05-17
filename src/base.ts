@@ -300,10 +300,10 @@ export class Chunk {
   public getNearIndex(x: number, y: number): [Chunk, number] | null {
     let cx;
     if (x < 0) {
-      x += CHUNK_SIZE;
+      x = CHUNK_SIZEm1;
       cx = 0;
     } else if (x > CHUNK_SIZEm1) {
-      x -= CHUNK_SIZE;
+      x = 0;
       cx = 2;
     } else {
       cx = 1;
@@ -311,10 +311,10 @@ export class Chunk {
 
     let cy;
     if (y < 0) {
-      y += CHUNK_SIZE;
+      y = CHUNK_SIZEm1;
       cy = 0;
     } else if (y > CHUNK_SIZEm1) {
-      y -= CHUNK_SIZE;
+      y = 0;
       cy = 2;
     } else {
       cy = 1;
@@ -448,7 +448,7 @@ export class World {
     }
   }
 
-  public queueNeighbors(chunk: Chunk, i: number, enqueueSelf = true): void {
+  public queueNeighbors(chunk: Chunk, i: number, enqueueSelf: boolean): void {
     chunk.forEachNeighbor(i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT, this.queueBlock, enqueueSelf);
   }
 

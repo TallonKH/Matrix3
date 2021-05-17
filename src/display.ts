@@ -301,8 +301,10 @@ export enum RedrawMode {
     const w = rect[2] - rect[0];
     const h = rect[3] - rect[1];
     const chunk = this.world.getChunkByHash(chunkHash);
+    // sometimes a chunk will be unloaded before the draw has finished, so it will be undefined here.
+    // that's not a big deal; just ignore it and continue
     if (chunk === undefined) {
-      throw "can't redraw chunk that's undefined!";
+      return;
     }
     // use <= because rects are inclusive
     for (let x = 0; x <= w; x++) {
