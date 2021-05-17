@@ -9,6 +9,7 @@ class CheckerGen extends WorldGenerator {
   private typeA = 0;
   private typeB = 0;
   private typeC = 0;
+  private typeD = 0;
   constructor(world: World) {
     super(world);
   }
@@ -17,12 +18,13 @@ class CheckerGen extends WorldGenerator {
     this.typeA = this.world.getBlockTypeIndex("air") ?? 0;
     this.typeB = this.world.getBlockTypeIndex("stone") ?? 0;
     this.typeC = this.world.getBlockTypeIndex("water") ?? 0;
+    this.typeD = this.world.getBlockTypeIndex("cobble") ?? 0;
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 
   public generate(_world: World, x: number, y: number, chunk: Chunk): void {
     const grid = chunk.getBlockTypes();
-    grid.fill((x & 1) ^ (y & 1) ? ((y & 2) ^ (x & 2) ? this.typeC : this.typeA) : this.typeB);
+    grid.fill((x & 1) ^ (y & 1) ? ((y & 2) ^ (x & 2) ? this.typeC : this.typeA) : ((y & 5)^(x & 3) ? this.typeD : this.typeB));
   }
 }
 
@@ -33,12 +35,20 @@ const bt_air = new BlockType({
   tickBehaviorGen: () => updateFlow(1, updateStatic),
 });
 
-const bt_stone = new BlockType({
-  name: "stone",
+const bt_cobble = new BlockType({
+  name: "cobble",
   color: new Color(0.4, 0.4, 0.4),
-  shader: shaderLerp(new Color(0.35, 0.35, 0.35), new Color(0.45, 0.45, 0.45)),
+  shader: shaderLerp(new Color(0.35, 0.32, 0.32), new Color(0.47, 0.47, 0.47)),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateCrumble(updateStatic),
+});
+
+const bt_stone = new BlockType({
+  name: "stone",
+  color: new Color(0.5, 0.5, 0.5),
+  shader: shaderLerp(new Color(0.46, 0.46, 0.46), new Color(0.55, 0.55, 0.55)),
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: () => updateStatic,
 });
 
 const bt_water = new BlockType({
@@ -51,6 +61,7 @@ const bt_water = new BlockType({
 
 const world = new World((w: World) => new CheckerGen(w));
 world.registerBlockType(bt_air);
+world.registerBlockType(bt_cobble);
 world.registerBlockType(bt_stone);
 world.registerBlockType(bt_water);
 world.init();

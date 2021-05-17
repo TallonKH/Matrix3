@@ -14,14 +14,20 @@ export function toProp(a: number): number {
   return a / 4294967296;
 }
 
-export function getBit(num: number, shift: number): boolean{
+export function getBit(num: number, shift: number): boolean {
   return ((num >> shift) & 1) === 1;
 }
 
-export function setBit(num: number, shift: number, bit: boolean): number{
-  return (num & ~(1<<shift)) | ((bit ? 1 : 0)<<shift);
+export function setBit(num: number, shift: number, bit: boolean): number {
+  return (num & ~(1 << shift)) | ((bit ? 1 : 0) << shift);
 }
 
+export function shuffleArray<T>(randFunc: () => number, array: Array<T>): void {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = ~~(randFunc() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 export class Color {
   public readonly r: number;
   public readonly g: number;

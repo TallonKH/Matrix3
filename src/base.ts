@@ -1,5 +1,5 @@
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
-import { Color, mixRands } from "./library";
+import { Color, mixRands, shuffleArray } from "./library";
 // import {GPU} from "gpu.js";
 // various common derivations of chunk size
 export const CHUNK_BITSHIFT = 6;
@@ -410,7 +410,7 @@ export class World {
     return chunk.getTypeOfBlock(i);
   }
 
-  public setBlockData(chunk: Chunk, i:number, data: BlockData): void {
+  public setBlockData(chunk: Chunk, i: number, data: BlockData): void {
     chunk.setNextBlockData(i, data);
     chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
     this.requestBlockRedraw(chunk, i);
@@ -519,8 +519,10 @@ export class World {
       if (!chunk.pendingTick) {
         continue;
       }
+
+      shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
-        if(!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)){
+        if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
         }
       }
@@ -559,7 +561,7 @@ export class World {
     return this.blockTypes[index];
   }
 
-  public getDensityOfBlock(chunk: Chunk, index:number): number {
+  public getDensityOfBlock(chunk: Chunk, index: number): number {
     return this.getBlockType(chunk.getTypeOfBlock(index)).getDensity(this, chunk, index);
   }
 
@@ -572,6 +574,8 @@ export class World {
   public getRandomFloat(): number {
     return this.getRandom() / 0xffffffff;
   }
+
+  public getRandomFloatBound = this.getRandomFloat.bind(this);
 
   public registerBlockType(type: BlockType): undefined | number {
     if (this.blockTypeMap.has(type.name)) {
