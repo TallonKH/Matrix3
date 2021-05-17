@@ -7,7 +7,7 @@ export function randify(a: number): number {
 
 export function mixRands(a: number, b: number): number {
   // the logic here is arbitrary; it just takes in 2 inputs and combines them into something unpredictable
-  return ((a + b) ^ (b << ((a + 1) * b % 31))) >>> 0;
+  return ((a * 19285 + ((b << 24) ^ (a + 1132) ^ b) * 32672) ^ (b << ((a + 1) >> (b & 0b1111))) ^ 98764321234) >>> 0;
 }
 
 export function toProp(a: number): number {
@@ -38,7 +38,7 @@ export class Color {
     return "(" +
       this.r.toFixed(3) + ", " +
       this.g.toFixed(3) + ", " +
-      this.b.toFixed(3) + ")"
+      this.b.toFixed(3) + ")";
   }
 
   static componentToHex(c: number): string {
@@ -52,14 +52,14 @@ export class Color {
     return "#" +
       Color.componentToHex(this.r) +
       Color.componentToHex(this.g) +
-      Color.componentToHex(this.b)
+      Color.componentToHex(this.b);
   }
 
-  operate(f: (c: number) => number) {
+  operate(f: (c: number) => number): Color {
     return new Color(f(this.r), f(this.g), f(this.b));
   }
 
-  static boperate(a: Color, b: Color, f: (a: number, b: number) => number) {
+  static boperate(a: Color, b: Color, f: (a: number, b: number) => number): Color {
     return new Color(f(a.r, b.r), f(a.g, b.g), f(a.b, b.b));
   }
 

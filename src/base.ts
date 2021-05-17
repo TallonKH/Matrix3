@@ -1,8 +1,8 @@
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
-import { Color } from "./library";
-
+import { Color, mixRands } from "./library";
+// import {GPU} from "gpu.js";
 // various common derivations of chunk size
-export const CHUNK_BITSHIFT = 6;
+export const CHUNK_BITSHIFT = 2;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
 /**
  * for use in quick modulo
@@ -22,7 +22,6 @@ export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
  */
 export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
 
-export type ChunkCoord = NPoint;
 export type GlobalCoord = NPoint;
 export type LocalCoord = NPoint;
 
@@ -32,8 +31,14 @@ type Grid8 = Uint8Array;
 type Grid16 = Uint16Array;
 type Grid32 = Uint32Array;
 
-type BlockShader = (world: World, chunk: Chunk, index: number) => Color;
-export const shaderSolid: (color: Color) => BlockShader = (color: Color) => () => color;
+
+type BlockShader = (world: World, chunk: Chunk, i: number, x: number, y: number) => Color;
+export const shaderSolid: (color: Color) => BlockShader
+  = (color: Color) =>
+    () => color;
+export const shaderLerp: (colorA: Color, colorB: Color) => BlockShader
+  = (colorA: Color, colorB: Color) =>
+    (_, chunk, i) => Color.lerp(colorA, colorB, chunk.getBlockId(i) / 255);
 
 type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
 // eslint-disable-next-line no-empty-function
@@ -43,20 +48,36 @@ interface BlockTypeArgs {
   name: string,
   color: Color,
   shader?: BlockShader,
-  tickBehavior?: TickBehavior,
+  tickBehaviorGen?: (world: World) => TickBehavior,
 }
 
 export class BlockType {
   public readonly name: string;
   public readonly color: Color;
   public readonly shader: BlockShader;
-  public readonly tickBehavior: TickBehavior;
+  public readonly tickBehaviorGen?: (world: World) => TickBehavior;
+  private tickBehavior: TickBehavior;
+  private initialized = false;
 
-  constructor({ name, color, shader, tickBehavior }: BlockTypeArgs) {
+  constructor({ name, color, shader, tickBehaviorGen }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.shader = shader ?? shaderSolid(this.color);
-    this.tickBehavior = tickBehavior ?? updateStatic;
+    this.tickBehaviorGen = tickBehaviorGen;
+    this.tickBehavior = updateStatic;
+  }
+
+  public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);
+
+  public init(world: World): void {
+    if (this.initialized) {
+      throw "BlockType already initialized!";
+    }
+
+    this.initialized = true;
+    if (this.tickBehaviorGen !== undefined) {
+      this.tickBehavior = this.tickBehaviorGen(world);
+    }
   }
 }
 
@@ -68,9 +89,9 @@ export const bt_missing: BlockType = new BlockType({
   color: new Color(1, 0, 1),
 });
 
-enum UpdateFlags {
+export enum UpdateFlags {
   PENDING_TICK = 0,
-  RECEIVED_TICK = 1,
+  // RECEIVED_TICK = 1,
   LOCKED = 2,
   PENDING_REDRAW = 3,
 }
@@ -95,32 +116,40 @@ const DIRECTIONS = [
 
 const ANTIDIRS = [4, 5, 6, 7, 0, 1, 2, 3, 8];
 
+const NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
+  [Neighbors.DOWN_LEFT, Neighbors.LEFT, Neighbors.UP_LEFT],
+  [Neighbors.DOWN, Neighbors.CENTER, Neighbors.UP],
+  [Neighbors.DOWN_RIGHT, Neighbors.RIGHT, Neighbors.UP_RIGHT]
+]);
 /**
  * Chunk's fields are public because this is essentially a compound data structure.
  * Chunk shouldn't contain any real logic.
  */
 export class Chunk {
-  static NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
-    [Neighbors.DOWN_LEFT, Neighbors.LEFT, Neighbors.UP_LEFT],
-    [Neighbors.DOWN, Neighbors.CENTER, Neighbors.UP],
-    [Neighbors.DOWN_RIGHT, Neighbors.RIGHT, Neighbors.UP_RIGHT]
-  ]);
 
   public pendingTick = false;
   // store by id, not coord
   public blocksPendingTick: Array<number> = [];
   public blocksPendingPendingTick: Array<number> = [];
-  public readonly types: Grid16 = new Uint16Array(CHUNK_SIZE2);
-  public readonly light: Grid32 = new Uint32Array(CHUNK_SIZE2);
+
+  // public readonly light: Grid32 = new Uint32Array(CHUNK_SIZE2);
 
   public neighbors: Array<Chunk | null> = Object.seal([null, null, null, null, null, null, null, null, this]);
   /**
    * 0: pending tick
-   * 1: received tick
+   * 1: ~~received tick~~
    * 2: locked
-   * 3: pending redraw
+   * 3: ~~pending redraw~~
    */
-  public readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
+  private readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
+  private readonly flagsNext: Grid8 = new Uint8Array(CHUNK_SIZE2);
+  private readonly creationTimes: Grid16 = new Uint16Array(CHUNK_SIZE2); // wraps around
+  private readonly creationTimesNext: Grid16 = new Uint16Array(CHUNK_SIZE2);
+  private readonly ids: Grid8 = new Uint8Array(CHUNK_SIZE2); // ids are not unique; just random
+  private readonly idsNext: Grid8 = new Uint8Array(CHUNK_SIZE2);
+  private readonly types: Grid16 = new Uint16Array(CHUNK_SIZE2);
+  private readonly typesNext: Grid16 = new Uint16Array(CHUNK_SIZE2);
+
   public readonly x: number;
   public readonly y: number;
   public readonly coord: NPoint;
@@ -130,10 +159,65 @@ export class Chunk {
     this.y = y;
     this.coord = new NPoint(x, y);
     this.types = types;
+
+    // populate ids with randoms
+    let rand = mixRands(x, y);
+    for (let i = 0; i < CHUNK_SIZE2; i++) {
+      rand = mixRands(rand, i);
+      this.ids[i] = rand;
+    }
+    rand = 0;
+  }
+
+  public applyNexts(): void {
+    this.creationTimes.set(this.creationTimesNext);
+    this.ids.set(this.idsNext);
+    this.types.set(this.typesNext);
+  }
+
+  public resetNexts(): void {
+    this.flags.fill(0);
+    this.creationTimesNext.set(this.creationTimes);
+    this.idsNext.set(this.ids);
+    this.typesNext.set(this.types);
+  }
+
+  public getBlockId(index: number): number {
+    return this.ids[index];
+  }
+
+  public setNextBlockId(index: number, id: number): void {
+    this.idsNext[index] = id;
+  }
+
+  public getBlockType(index: number): number {
+    return this.types[index];
+  }
+
+  // TODO this is temporary
+  public getBlockTypes(): Uint16Array {
+    return this.types;
+  }
+
+  // TODO this is temporary
+  public getNextBlockTypes(): Uint16Array {
+    return this.typesNext;
+  }
+
+  public setNextBlockType(index: number, id: number): void {
+    this.typesNext[index] = id;
+  }
+
+  public getBlockCreationTime(index: number): number {
+    return this.creationTimes[index];
+  }
+
+  public setNextBlockCreationTime(index: number, id: number): void {
+    this.creationTimesNext[index] = id;
   }
 
   public getFlag(index: number, flag: UpdateFlags): boolean {
-    return (this.flags[index] >> flag & 1) === 1;
+    return ((this.flags[index] >> flag) & 1) === 1;
   }
 
   public setFlagOn(index: number, flag: UpdateFlags): void {
@@ -144,10 +228,6 @@ export class Chunk {
     this.flags[index] &= ~(1 << flag);
   }
 
-  public static coordToIndex(x: number, y: number): number {
-    return (x << CHUNK_BITSHIFT) + y;
-  }
-
   /**
    * Run `func` on every block surrounding a given block (even if the neighboring block is in a different chunk)
    * @param x local x coord of center block
@@ -155,9 +235,10 @@ export class Chunk {
    * @param useCenter whether or not to run `func` on the center block
    * @param func function to run on center block & neighboring blocks
    */
+  // TODO figure out why this function leaves out a triangle 3 away from the corner of a chunk (regardless of chunk size?)
   public forEachNeighbor(x: number, y: number, func: (chunk: Chunk, index: number) => void, useCenter: boolean): void {
-    for (let dx = x - 1; dx <= dx + 1; dx++) {
-      for (let dy = y - 1; dy <= dy + 1; dy++) {
+    for (let dx = x - 1; dx <= x + 1; dx++) {
+      for (let dy = y - 1; dy <= y + 1; dy++) {
         if (useCenter || !(dx === x && dy === y)) {
           const c = this.getNearIndex(dx, dy);
           if (c !== null) {
@@ -180,7 +261,7 @@ export class Chunk {
       x += CHUNK_SIZE;
       cx = 0;
     } else if (x > CHUNK_SIZEm1) {
-      x = 0;
+      x -= CHUNK_SIZE;
       cx = 2;
     } else {
       cx = 1;
@@ -191,14 +272,14 @@ export class Chunk {
       y += CHUNK_SIZE;
       cy = 0;
     } else if (y > CHUNK_SIZEm1) {
-      y = 0;
+      y -= CHUNK_SIZE;
       cy = 2;
     } else {
       cy = 1;
     }
 
-    const chunk = this.neighbors[Chunk.NEIGHBOR_OFFSETS[cx][cy]];
-    return chunk === null ? null : [chunk, Chunk.coordToIndex(x, y)];
+    const chunk = this.neighbors[NEIGHBOR_OFFSETS[cx][cy]];
+    return chunk === null ? null : [chunk, x + (y << CHUNK_BITSHIFT)];
   }
 }
 
@@ -244,6 +325,8 @@ export class World {
   private readonly blockTypes: Array<BlockType> = [];
   private readonly blockTypeMap: Map<string, BlockId> = new Map();
   private time = 0;
+  private rand = 1;
+  private ticking = false;
   private initialized = false;
 
   private redrawListenerCounter = 0;
@@ -259,15 +342,53 @@ export class World {
       return true;
     }
 
+    for (const blockType of this.blockTypes) {
+      blockType.init(this);
+    }
+
     this.worldGen = this.worldGenGen(this);
     this.worldGen.runInit();
     this.initialized = true;
     return true;
   }
 
+  public startTickLoop(): void {
+    if (this.ticking) {
+      throw "already ticking!";
+    }
+    this.ticking = true;
+
+    window.setInterval(() => {
+      this.performGlobalTick();
+    }, ~~(1000 / 5));
+  }
+
+  public setBlockTypeNew(chunk: Chunk, i: number, typeId: number, force = false): void {
+    if (force || !chunk.getFlag(i, UpdateFlags.LOCKED)) {
+      // reset creation time
+      chunk.setNextBlockCreationTime(i, this.time);
+      // reset id
+      this.rand = mixRands(this.rand, i + this.time);
+      chunk.setNextBlockId(i, mixRands(this.rand, i) & 0b11111111);
+      // actually set type
+      this.setBlockTypeMutate(chunk, i, typeId, true);
+    }
+  }
+
+  public setBlockTypeMutate(chunk: Chunk, i: number, typeId: number, force = false): void {
+    if(force || !chunk.getFlag(i, UpdateFlags.LOCKED)){
+      // set type (for the next iteration)
+      chunk.setNextBlockType(i, typeId);
+      chunk.setFlagOn(i, UpdateFlags.LOCKED);
+      
+      this.requestBlockRedraw(chunk, i);
+      this.queueNeighbors(chunk, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT, true);
+    }
+  }
+
   public queueBlock(chunk: Chunk, i: number): void {
-    chunk.pendingTick = true;
     if (!chunk.getFlag(i, UpdateFlags.PENDING_TICK)) {
+      chunk.pendingTick = true;
       chunk.setFlagOn(i, UpdateFlags.PENDING_TICK);
       chunk.blocksPendingPendingTick.push(i);
     }
@@ -304,6 +425,7 @@ export class World {
 
     if (count === 1) {
       this.chunkLoadRequests.delete(ch);
+      // TODO store chunks instead of deleting them
       this.loadedChunks.delete(ch);
     } else {
       this.chunkLoadRequests.set(ch, count - 1);
@@ -337,14 +459,23 @@ export class World {
       if (!chunk.pendingTick) {
         continue;
       }
-
-      // update pending blocks
-      // loop in-place; this is not a problem because blocksPendingPendingTick is used for next tick
+      chunk.resetNexts();
+    }
+    for (const [, chunk] of this.loadedChunks) {
+      if (!chunk.pendingTick) {
+        continue;
+      }
       for (const i of chunk.blocksPendingTick) {
-        chunk.setFlagOff(i, UpdateFlags.PENDING_TICK);
-        this.blockTypes[chunk.types[i]].tickBehavior(this, chunk, i);
+        this.blockTypes[chunk.getBlockType(i)].doTick(this, chunk, i);
       }
     }
+    for (const [, chunk] of this.loadedChunks) {
+      if (!chunk.pendingTick) {
+        continue;
+      }
+      chunk.applyNexts();
+    }
+    // console.log("tick done");
 
     // apply/flush the pendingPending buffer
     for (const [, chunk] of this.loadedChunks) {
@@ -407,6 +538,9 @@ export class World {
     // create new chunk
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const newChunk = this.worldGen!.generate(this, x, y);
+    for (let i = 0; i < CHUNK_SIZE2; i++) {
+      this.queueBlock(newChunk, i);
+    }
     this.loadedChunks.set(ch, newChunk);
 
     // assign neighbors

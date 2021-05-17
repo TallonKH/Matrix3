@@ -1,10 +1,9 @@
-import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK_SIZE2, CHUNK_SIZEm1 } from "./base";
+import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, BlockId, Chunk, CHUNK_SIZEm1, CHUNK_SIZE2, UpdateFlags } from "./base";
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
 // import { GPU } from "gpu.js";
 
 // [minX, minY, maxX, maxY], inclusive
 type Rect = [number, number, number, number];
-
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
 
@@ -22,7 +21,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 2;
+  private pixelsPerBlock = 20;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -50,7 +49,11 @@ export default class GridDisplay {
   private chunkPendingRects: Map<PointStr, Rect> = new Map();
   private static readonly FULL_RECT: Rect = [0, 0, CHUNK_SIZEm1, CHUNK_SIZEm1];
 
+  // TODO uncache chunks
   private cachedChunkColorData: Map<PointStr, ImageData> = new Map();
+
+  //TODO make this not-readonly (need to create a new interval)
+  private readonly targetFPS = 60;
 
   constructor() {
     const ctx = this.canvas.getContext("2d");
@@ -85,9 +88,9 @@ export default class GridDisplay {
     });
 
     // screen follows mouse
-    document.addEventListener("mousemove", (e) => {
-      this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
-    });
+    // document.addEventListener("mousemove", (e) => {
+    //   this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
+    // });
 
     // redraw
     // window.setInterval(() => {
@@ -172,7 +175,7 @@ export default class GridDisplay {
     this.visibleMax = new NPoint(newMaxX, newMaxY);
   }
 
-  private requestChunkRedraw(chunkCoord: NPoint) {
+  public requestChunkRedraw(chunkCoord: NPoint): void {
     // console.log(chunkCoord);
     this.redrawRequested |= 2;
     this.chunkPendingRects.set(chunkCoord.toHash(), GridDisplay.FULL_RECT);
@@ -189,8 +192,8 @@ export default class GridDisplay {
   private queueBlockRedraw(chunk: Chunk, i: BlockId) {
     this.redrawRequested |= 4;
     const x = i & CHUNK_MODMASK;
-    // const y = i >> CHUNK_BITSHIFT;
-    const y = i / CHUNK_SIZE;
+    const y = i >> CHUNK_BITSHIFT;
+    
     const chunkCoord = chunk.coord;
 
     const hash = chunkCoord.toHash();
@@ -203,6 +206,9 @@ export default class GridDisplay {
       rect[2] = Math.max(x, rect[2]);
       rect[3] = Math.max(y, rect[3]);
     }
+    // if(chunkCoord.equals(new NPoint(1,1))){
+    //   console.log(rect);
+    // }
   }
 
   public startDrawLoop(): void {
@@ -213,11 +219,12 @@ export default class GridDisplay {
     const boundIteration = this.drawLoopIteration.bind(this);
     window.setInterval(() => {
       if (this.redrawRequested > 0 && !this.redrawPending && this.resizeHappened) {
-        this.redrawRequested = 0;
+        //TODO
+        // this.redrawRequested = 0;
         this.redrawPending = true;
         window.requestAnimationFrame(boundIteration);
       }
-    }, ~~(1000 / 60));
+    }, ~~(1000 / this.targetFPS));
 
     this.redrawLoopRunning = true;
   }
@@ -226,6 +233,7 @@ export default class GridDisplay {
     for (const coordRectPair of this.chunkPendingRects) {
       this.redrawChunkRect(coordRectPair[0], coordRectPair[1]);
     }
+
     this.renderView();
     this.redrawPending = false;
     this.chunkPendingRects.clear();
@@ -235,24 +243,66 @@ export default class GridDisplay {
     if (this.visibleMin === null || this.visibleMax === null) {
       throw "can't render view when visiblemin/max are null!";
     }
-    this.ctx.clearRect(0,0,this.dims.x, this.dims.y);
-    
+    this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
+
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkColorData = this.cachedChunkColorData.get(NPoint.toHash(x, y));
         if (chunkColorData !== undefined) {
-          this.ctx.putImageData(chunkColorData, 
-            Math.floor(x * CHUNK_SIZE + this.viewOrigin.x  / this.pixelsPerBlock), 
+          this.ctx.putImageData(chunkColorData,
+            Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
             Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock));
         }
       }
     }
   }
 
+  private redrawChunkDebug(chunkHash: string, mode: string): ImageData {
+    if (this.world === null) {
+      throw "can't debug redraw chunk rect when world is null!";
+    }
+
+    const colors = new ImageData(CHUNK_SIZE, CHUNK_SIZE);
+    const chunk = this.world.getChunkByHash(chunkHash);
+    if (chunk === undefined) {
+      for (let i = 0; i < CHUNK_SIZE2; i++) {
+        colors.data[i << 2] = 255;
+      }
+      return colors;
+    }
+
+    for (let i = 0; i < CHUNK_SIZE2; i++) {
+      const colIndex = i * 4;
+
+      switch (mode) {
+        case "shader": {
+          const blockType = this.world.getBlockType(chunk.getBlockType(i));
+          const color = blockType.shader(this.world, chunk, i, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT);
+
+          colors.data[colIndex + 0] = ~~(color.r * 255);
+          colors.data[colIndex + 1] = ~~(color.g * 255);
+          colors.data[colIndex + 2] = ~~(color.b * 255);
+          colors.data[colIndex + 3] = 255;
+          break;
+        }
+        case "flags": {
+          colors.data[colIndex + 0] = chunk.getFlag(i, UpdateFlags.PENDING_TICK) ? 100 : 0;
+          colors.data[colIndex + 1] = chunk.getFlag(i, UpdateFlags.PENDING_REDRAW) ? 100 : 0;
+          colors.data[colIndex + 2] = chunk.getFlag(i, UpdateFlags.LOCKED) ? 100 : 0;
+          colors.data[colIndex + 3] = 255;
+          break;
+        }
+      }
+    }
+    return colors;
+  }
+
   private redrawChunkRect(chunkHash: string, rect: Rect) {
     if (this.world === null) {
       throw "can't redraw chunk rect when world is null!";
     }
+
+    // console.log("redraw: " + chunkHash);
 
     const colors = this.cachedChunkColorData.get(chunkHash) ?? new ImageData(CHUNK_SIZE, CHUNK_SIZE);
     this.cachedChunkColorData.set(chunkHash, colors);
@@ -268,13 +318,14 @@ export default class GridDisplay {
     // use <= because rects are inclusive
     for (let x = 0; x <= w; x++) {
       for (let y = 0; y <= h; y++) {
-        const blockType = this.world.getBlockType(chunk.types[x + (y << CHUNK_BITSHIFT)]);
         const blockIndex = (x + xi) + ((y + yi) << CHUNK_BITSHIFT);
-        const colIndex = blockIndex << 2; 
-        const color = blockType.shader(this.world, chunk, blockIndex);
-        colors.data[colIndex + 0] = ~~(color.r*255);
-        colors.data[colIndex + 1] = ~~(color.g*255);
-        colors.data[colIndex + 2] = ~~(color.b*255);
+        const blockType = this.world.getBlockType(chunk.getBlockType(blockIndex));
+        const color = blockType.shader(this.world, chunk, blockIndex, x, y);
+
+        const colIndex = blockIndex << 2;
+        colors.data[colIndex + 0] = ~~(color.r * 255);
+        colors.data[colIndex + 1] = ~~(color.g * 255);
+        colors.data[colIndex + 2] = ~~(color.b * 255);
         colors.data[colIndex + 3] = 255;
       }
     }
@@ -292,7 +343,7 @@ export default class GridDisplay {
     this.unlink();
     this.world = world;
 
-    this.world.registerRedrawListener(this.queueBlockRedraw);
+    this.world.registerRedrawListener(this.queueBlockRedraw.bind(this));
     this.recalcVisibleChunks();
   }
 
@@ -350,4 +401,26 @@ export default class GridDisplay {
   public getViewDims(): NPoint {
     return this.dims;
   }
+
+  public debugRender(mode: string): void {
+    if (this.visibleMin === null || this.visibleMax === null) {
+      throw "can't debug render view when visiblemin/max are null!";
+    }
+    this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
+
+    // const chunkColorData = this.redrawChunkDebug(NPoint.toHash(1,1), "flags");
+    // console.log(chunkColorData);
+    // console.log(this.world?.getChunk(1,1)?.getFlag(1,0));
+    for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
+      for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
+        const chunkColorData = this.redrawChunkDebug(NPoint.toHash(x, y), mode);
+        if (chunkColorData !== undefined) {
+          this.ctx.putImageData(chunkColorData,
+            Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
+            Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock));
+        }
+      }
+    }
+  }
 }
+
