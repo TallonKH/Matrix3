@@ -51,14 +51,15 @@ export enum RedrawMode {
    * rectangular regions pending redraw within chunks (local coords)
    * [-x,-y,+x,+y], inclusive
    */
-  private chunkPendingRects: Map<PointStr, Rect> = new Map();
+  private chunkPendingRects: Map<PointStr, [NPoint, Rect]> = new Map();
   private static readonly FULL_RECT: Rect = [0, 0, CHUNK_SIZEm1, CHUNK_SIZEm1];
 
-  // TODO uncache chunks
-  private cachedChunkColorData: Map<PointStr, ImageData> = new Map();
+  // coord hash : data, chunk coord
+  private cachedChunkColorData: Map<PointStr, [NPoint, ImageData]> = new Map();
 
   //TODO make this not-readonly (need to create a new interval)
   private readonly targetFPS;
+  private cacheBuffer = 1;
 
   constructor(targetFps = 60) {
     this.targetFPS = targetFps;
@@ -99,12 +100,15 @@ export enum RedrawMode {
     // });
   }
 
-  public setViewOrigin(pt: NPoint): NPoint {
+  public setViewOrigin(pt: NPoint): void {
     this.viewOrigin = pt;
     this.viewOriginCh = pt.divide1(this.pixelsPerBlock * CHUNK_SIZE);
     this.recalcVisibleChunks();
     this.redrawRequested |= 8;
-    return pt;
+  }
+
+  public getViewOrigin(): NPoint {
+    return this.viewOrigin;
   }
 
   /**
@@ -173,7 +177,7 @@ export enum RedrawMode {
 
   public requestChunkRedraw(chunkCoord: NPoint): void {
     this.redrawRequested |= 2;
-    this.chunkPendingRects.set(chunkCoord.toHash(), GridDisplay.FULL_RECT);
+    this.chunkPendingRects.set(chunkCoord.toHash(), [chunkCoord, GridDisplay.FULL_RECT]);
   }
 
   private cancelChunkRedraw(chunkCoord: NPoint) {
@@ -192,10 +196,11 @@ export enum RedrawMode {
     const chunkCoord = chunk.coord;
 
     const hash = chunkCoord.toHash();
-    const rect = this.chunkPendingRects.get(hash);
-    if (rect === undefined) {
-      this.chunkPendingRects.set(hash, [x, y, x, y]);
+    const prect = this.chunkPendingRects.get(hash);
+    if (prect === undefined) {
+      this.chunkPendingRects.set(hash, [chunkCoord, [x, y, x, y]]);
     } else {
+      const rect = prect[1];
       rect[0] = Math.min(x, rect[0]);
       rect[1] = Math.min(y, rect[1]);
       rect[2] = Math.max(x, rect[2]);
@@ -221,8 +226,28 @@ export enum RedrawMode {
   }
 
   private drawLoopIteration(): void {
+    if (this.visibleMin === null || this.visibleMax === null) {
+      throw "tried draw loop iteration with null min/max";
+      return;
+    }
+
+    // uncache chunks that aren't in view anymore
+    const chunksToUncache: Array<string> = [];
+    for (const coordRectPair of this.cachedChunkColorData) {
+      const coord = coordRectPair[1][0];
+      if (coord.x < (this.visibleMin.x - this.cacheBuffer)
+        || coord.y < (this.visibleMin.y - this.cacheBuffer)
+        || coord.x > (this.visibleMax.x + this.cacheBuffer)
+        || coord.y > (this.visibleMax.y + this.cacheBuffer)) {
+        chunksToUncache.push(coordRectPair[0]);
+      }
+    }
+    for (const coord of chunksToUncache) {
+      this.cachedChunkColorData.delete(coord);
+    }
+
     for (const coordRectPair of this.chunkPendingRects) {
-      this.redrawChunkRect(coordRectPair[0], coordRectPair[1]);
+      this.redrawChunkRect(coordRectPair[0], coordRectPair[1][0], coordRectPair[1][1]);
     }
 
     this.renderView();
@@ -240,7 +265,7 @@ export enum RedrawMode {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkColorData = this.cachedChunkColorData.get(NPoint.toHash(x, y));
         if (chunkColorData !== undefined) {
-          this.ctx.putImageData(chunkColorData,
+          this.ctx.putImageData(chunkColorData[1],
             Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
             Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock));
         }
@@ -288,13 +313,15 @@ export enum RedrawMode {
     return colors;
   }
 
-  private redrawChunkRect(chunkHash: string, rect: Rect) {
+  private redrawChunkRect(chunkHash: string, coord: NPoint, rect: Rect) {
     if (this.world === null) {
       throw "can't redraw chunk rect when world is null!";
     }
 
-    const colors = this.cachedChunkColorData.get(chunkHash) ?? new ImageData(CHUNK_SIZE, CHUNK_SIZE);
-    this.cachedChunkColorData.set(chunkHash, colors);
+    const dat = this.cachedChunkColorData.get(chunkHash) ?? [coord, new ImageData(CHUNK_SIZE, CHUNK_SIZE)];
+    this.cachedChunkColorData.set(chunkHash, dat);
+    const colors = dat[1];
+
 
     const xi = rect[0];
     const yi = rect[1];

@@ -101,3 +101,57 @@ mainDisplay.startDrawLoop();
 // window.setInterval(() => {
 //   mainDisplay.debugRender("shader");
 // }, 100);
+
+let leftKeyDown = false;
+let rightKeyDown = false;
+let upKeyDown = false;
+let downKeyDown = false;
+document.addEventListener("keydown", (e)=>{
+  switch(e.key){
+    case "ArrowLeft":
+      leftKeyDown = true;
+      break;
+    case "ArrowRight":
+      rightKeyDown = true;
+      break;
+    case "ArrowUp":
+      upKeyDown = true;
+      break;
+    case "ArrowDown":
+      downKeyDown = true;
+      break;
+  }
+});
+
+document.addEventListener("keyup", (e)=>{
+  switch(e.key){
+    case "ArrowLeft":
+      leftKeyDown = false;
+      break;
+    case "ArrowRight":
+      rightKeyDown = false;
+      break;
+    case "ArrowUp":
+      upKeyDown = false;
+      break;
+    case "ArrowDown":
+      downKeyDown = false
+      break;
+  }
+});
+
+const panSpeed = -10;
+window.setInterval(()=>{
+  if(leftKeyDown){
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed,0));
+  }
+  if(rightKeyDown){
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed,0));
+  }
+  if(upKeyDown){
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0,-panSpeed));
+  }
+  if(downKeyDown){
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0,panSpeed));
+  }
+}, (1000/60));
