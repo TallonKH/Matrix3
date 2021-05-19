@@ -96,7 +96,8 @@ function kernelFunction(this: IKernelFunctionThis, args: [number, number, number
   const type = types[i];
 
   const factor =
-    (factors[type][6] * (ids[i] / 255));
+    (factors[type][6] * (ids[i] / 255)) +
+    (factors[type][15] * (Math.sin(factors[type][16] * (time + ids[i] * factors[type][17])) + 1) / 2);
   // const factor =
   //   (factors[type][6] * (ids[i] / 255)) +
   //   (factors[type][7] * (perlin(

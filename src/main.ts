@@ -15,9 +15,9 @@ class CheckerGen extends WorldGenerator {
 
   public init(): boolean {
     this.typeA = this.world.getBlockTypeIndex("water") ?? 0;
-    this.typeB = this.world.getBlockTypeIndex("air") ?? 0;
+    this.typeB = this.world.getBlockTypeIndex("water") ?? 0;
     this.typeC = this.world.getBlockTypeIndex("stone") ?? 0;
-    this.typeD = this.world.getBlockTypeIndex("gravel") ?? 0;
+    this.typeD = this.world.getBlockTypeIndex("water") ?? 0;
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 
@@ -61,13 +61,14 @@ const bt_stone = new BlockType({
 shaderData.set("stone", {
   min: new Color(0.46, 0.46, 0.46),
   max: new Color(0.55, 0.55, 0.55),
-  randFactor: 0.4,
-  noise1Factor: 0.3,
-  noise1ScaleX: 0.05,
-  noise1ScaleY: 0.1,
-  noise2Factor: 0.3,
-  noise2ScaleX: 0.5,
-  noise2ScaleY: 0.5,
+  randFactor: 1,
+  // randFactor: 0.4,
+  // noise1Factor: 0.3,
+  // noise1ScaleX: 0.05,
+  // noise1ScaleY: 0.1,
+  // noise2Factor: 0.3,
+  // noise2ScaleX: 0.5,
+  // noise2ScaleY: 0.5,
 });
 
 const bt_water = new BlockType({
@@ -77,17 +78,20 @@ const bt_water = new BlockType({
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),
 });
 shaderData.set("water", {
-  min: new Color(0.20, 0.42, 0.97),
+  min: new Color(0.23, 0.47, 0.97),
   max: new Color(0.25, 0.55, 1),
-  randFactor: 0.2,
-  noise1Factor: 0.6,
-  noise1ScaleX: 0.05,
-  noise1ScaleY: 0.1,
-  noise1ScaleTime: 0.015,
-  noise2Factor: 0.2,
-  noise2ScaleX: 0.5,
-  noise2ScaleY: 0.5,
-  noise2ScaleTime: 0.1,
+  randFactor: 0.5,
+  timeFactor: 0.5,
+  timeOffsetFactor: 1,
+  timeScale: 0.05,
+  // noise1Factor: 0.6,
+  // noise1ScaleX: 0.05,
+  // noise1ScaleY: 0.1,
+  // noise1ScaleTime: 0.015,
+  // noise2Factor: 0.2,
+  // noise2ScaleX: 0.5,
+  // noise2ScaleY: 0.5,
+  // noise2ScaleTime: 0.1,
 });
 
 const world = new World((w: World) => new CheckerGen(w));

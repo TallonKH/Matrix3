@@ -16,8 +16,9 @@ export type BlockShaderFactorMap = {
   min: Color,
   max: Color,
   randFactor?: number,
-  noise1Factor?: number, noise1ScaleX?: number, noise1ScaleY?: number, noise1ScaleTime?: number
-  noise2Factor?: number, noise2ScaleX?: number, noise2ScaleY?: number, noise2ScaleTime?: number
+  noise1Factor?: number, noise1ScaleX?: number, noise1ScaleY?: number, noise1ScaleTime?: number,
+  noise2Factor?: number, noise2ScaleX?: number, noise2ScaleY?: number, noise2ScaleTime?: number,
+  timeFactor?: number, timeScale?: number, timeOffsetFactor?: number,
 }
 
 export type BlockShaderFactorList = [
@@ -25,7 +26,8 @@ export type BlockShaderFactorList = [
   number, number, number,
   number,
   number, number, number, number,
-  number, number, number, number
+  number, number, number, number,
+  number, number, number
 ];
 
 export default class GridDisplay {
@@ -45,7 +47,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 4;
+  private pixelsPerBlock = 6;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -149,7 +151,8 @@ export default class GridDisplay {
       args.max.r, args.max.g, args.max.b,
       args.randFactor ?? 1,
       args.noise1Factor ?? 0, args.noise1ScaleX ?? 0.1, args.noise1ScaleY ?? 0.1, args.noise1ScaleTime ?? 0,
-      args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0
+      args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0,
+      args.timeFactor ?? 0, args.timeScale ?? 1, args.timeOffsetFactor ?? 0
     ];
     this.blockShaders[id] = argList;
     return argList;
