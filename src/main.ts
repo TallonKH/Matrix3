@@ -15,9 +15,9 @@ class CheckerGen extends WorldGenerator {
 
   public init(): boolean {
     this.typeA = this.world.getBlockTypeIndex("water") ?? 0;
-    this.typeB = this.world.getBlockTypeIndex("water") ?? 0;
+    this.typeB = this.world.getBlockTypeIndex("gravel") ?? 0;
     this.typeC = this.world.getBlockTypeIndex("stone") ?? 0;
-    this.typeD = this.world.getBlockTypeIndex("water") ?? 0;
+    this.typeD = this.world.getBlockTypeIndex("air") ?? 0;
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 

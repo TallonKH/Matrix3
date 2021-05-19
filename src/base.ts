@@ -595,9 +595,9 @@ export class World {
     }
     rand = 0;
 
-    // for (let i = 0; i < CHUNK_SIZE2; i++) {
-    //   this.queueBlock(newChunk, i);
-    // }
+    for (let i = 0; i < CHUNK_SIZE2; i++) {
+      this.queueBlock(newChunk, i);
+    }
     this.loadedChunks.set(ch, newChunk);
 
     // assign neighbors
