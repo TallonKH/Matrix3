@@ -88,9 +88,7 @@ export const bt_missing: BlockType = new BlockType({
 
 export enum UpdateFlags {
   PENDING_TICK = 0,
-  // RECEIVED_TICK = 1,
-  LOCKED = 2,
-  PENDING_REDRAW = 3,
+  LOCKED = 1,
 }
 
 enum Neighbors {
@@ -135,7 +133,6 @@ export class Chunk {
    * 0: pending tick
    * 1: ~~received tick~~
    * 2: locked
-   * 3: ~~pending redraw~~
    */
   private readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
   private readonly flagsNext: Grid8 = new Uint8Array(CHUNK_SIZE2);
@@ -351,9 +348,6 @@ export class World {
   private initialized = false;
   private readonly targetFps: number;
 
-  // private redrawListenerCounter = 0;
-  // private redrawListeners: Map<number, (chunk: Chunk, i: number) => void> = new Map();
-
   constructor(worldGenGen: (world: World) => WorldGenerator) {
     this.registerBlockType(bt_missing);
     this.worldGenGen = worldGenGen ?? ((world: World) => new MissingWorldGen(world));
@@ -400,7 +394,6 @@ export class World {
   public setBlockData(chunk: Chunk, i: number, data: BlockData): void {
     chunk.setNextBlockData(i, data);
     chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
-    // this.requestBlockRedraw(chunk, i);
     this.queueNeighbors(chunk, i, true);
   }
 
@@ -422,7 +415,6 @@ export class World {
       chunk.setNextTypeOfBlock(i, typeId);
       chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
 
-      // this.requestBlockRedraw(chunk, i);
       this.queueNeighbors(chunk, i, true);
     }
   }
@@ -472,20 +464,6 @@ export class World {
       this.chunkLoadRequests.set(ch, count - 1);
     }
   }
-
-  // public registerRedrawListener(func: (chunk: Chunk, i: number) => void): number {
-  //   this.redrawListenerCounter++;
-  //   this.redrawListeners.set(this.redrawListenerCounter, func);
-  //   return this.redrawListenerCounter;
-  // }
-
-  // public unregisterRedrawListener(id: number): void {
-  //   this.redrawListeners.delete(id);
-  // }
-
-  // public requestBlockRedraw(chunk: Chunk, i: number): void {
-  //   this.redrawListeners.forEach(f => f(chunk, i));
-  // }
 
   /**
    * Logic update for all pending blocks
@@ -617,9 +595,9 @@ export class World {
     }
     rand = 0;
 
-    for (let i = 0; i < CHUNK_SIZE2; i++) {
-      this.queueBlock(newChunk, i);
-    }
+    // for (let i = 0; i < CHUNK_SIZE2; i++) {
+    //   this.queueBlock(newChunk, i);
+    // }
     this.loadedChunks.set(ch, newChunk);
 
     // assign neighbors

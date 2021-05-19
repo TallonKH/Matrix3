@@ -1,5 +1,5 @@
 import { Chunk, World, WorldGenerator, BlockType, densityConstant, updateStatic } from "./base";
-import GridDisplay, { BlockShaderFactorMap, RedrawMode } from "./display";
+import GridDisplay, { BlockShaderFactorMap } from "./display";
 import { Color } from "./library";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { updateCascade, updateCrumble, updateFall, updateFlow } from "./tick-behaviors";
@@ -118,27 +118,9 @@ for (const shader of shaderData) {
   mainDisplay.registerBlockShader(shader[0], shader[1]);
 }
 
-if (a) {
-  const flagDisplay = new GridDisplay();
-  // flagDisplay.canvas.style.height = "100%";
-  flagDisplay.canvas.style.border = "2px solid black";
-  flagDisplay.canvas.style.background = "linear-gradient(0deg, #F0F 0%, #404 100%)";
-  container.appendChild(flagDisplay.canvas);
-  flagDisplay.link(world);
-  window.setInterval(() => {
-    flagDisplay.renderViewDebug(RedrawMode.FLAGS);
-  }, 100);
-}
-
-// world.requestChunkLoad(1, 1);
-// mainDisplay.requestChunkRedraw(new NPoint(1, 1));
-
 world.startTickLoop(30);
 
 mainDisplay.startDrawLoop();
-// window.setInterval(() => {
-//   mainDisplay.debugRender("shader");
-// }, 100);
 
 let leftKeyDown = false;
 let rightKeyDown = false;

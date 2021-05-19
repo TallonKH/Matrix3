@@ -1,5 +1,4 @@
-import { GPU, IKernelFunctionThis, Kernel } from 'gpu.js';
-import { CHUNK_BITSHIFT, CHUNK_SIZE } from './base';
+import { GPU, IKernelFunctionThis } from 'gpu.js';
 import { BlockShaderFactorList } from './display';
 const gpu = new GPU();
 
@@ -88,8 +87,8 @@ function perlin(x: number, y: number, z: number): number {
 }
 
 function kernelFunction(this: IKernelFunctionThis, args: [number, number, number, number, number], factors: BlockShaderFactorList[], types: Uint16Array, ids: Uint8Array): void {
-  const x = this.thread.x + (args[2] * args[0]);
-  const y = this.thread.y + (args[3] * args[0]);
+  // const x = this.thread.x + (args[2] * args[0]);
+  // const y = this.thread.y + (args[3] * args[0]);
   const i = this.thread.x + (this.thread.y << args[1]);
   const time = args[4];
 
@@ -98,6 +97,8 @@ function kernelFunction(this: IKernelFunctionThis, args: [number, number, number
   const factor =
     (factors[type][6] * (ids[i] / 255)) +
     (factors[type][15] * (Math.sin(factors[type][16] * (time + ids[i] * factors[type][17])) + 1) / 2);
+
+  // noise version
   // const factor =
   //   (factors[type][6] * (ids[i] / 255)) +
   //   (factors[type][7] * (perlin(
@@ -113,24 +114,14 @@ function kernelFunction(this: IKernelFunctionThis, args: [number, number, number
     lerp(factors[type][0], factors[type][3], factor),
     lerp(factors[type][1], factors[type][4], factor),
     lerp(factors[type][2], factors[type][5], factor),
-    // mod(y, args[0]),
-    // mod(x, args[0]),
     1
-    // y / args[0]
   );
 }
 
 export default function getShaderKernel() {
   return gpu.createKernel<typeof kernelFunction>(kernelFunction)
     .setFunctions([
-      mod,
       lerp,
-      f3x2m1,
-      rand1u1,
-      rand3u1,
-      rand3vec3,
-      dot3,
-      perlinCorner,
-      perlin,
+      // f3x2m1, rand1u1, rand3u1, rand3vec3, dot3, perlinCorner, perlin,
     ]).setGraphical(true);
 }
