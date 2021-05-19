@@ -27,25 +27,6 @@ export type LocalCoord = NPoint;
 
 type Grid8 = Uint8Array;
 type Grid16 = Uint16Array;
-type Grid32 = Uint32Array;
-
-// TODO replace this with a GPU system
-/**
- * 
- * a few base shader types
- *  - id interp [min, max, curvature (-1=only middle, -0.5=normal-ish, 0=uniform, 0.5=inverse normal-ish, 1=only ends)]
- *       (gravel, dirt, air (min=max), etc)
- *  - x/y/time perlin [min, max, curvature, x_scale, y_scale, time_scale]
- *      (water, steam, stone (time_scale=0))
- * each shader simply adds the previous shader
- * 
- * shaders are expected to output 0,0,0 for blocks that are not of the appropriate type
- */
-// Block Shaders
-export type BlockShader = (world: World, chunk: Chunk, i: number, x: number, y: number) => Color;
-export const shaderSolid: (color: Color) => BlockShader
-  = (color: Color) =>
-    () => color;
 
 // Block Tick Behavior
 export type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
@@ -61,7 +42,6 @@ export type BlockData = { creationTime: number, id: number, type: number };
 interface BlockTypeArgs {
   name: string,
   color: Color,
-  shader?: BlockShader,
   tickBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
 }
@@ -69,16 +49,14 @@ interface BlockTypeArgs {
 export class BlockType {
   public readonly name: string;
   public readonly color: Color;
-  public readonly shader: BlockShader;
   public readonly tickBehaviorGen?: (world: World) => TickBehavior;
   private tickBehavior: TickBehavior;
   private densityFunc: DensityFunc;
   private initialized = false;
 
-  constructor({ name, color, shader, tickBehaviorGen, densityFunc }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, densityFunc }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
-    this.shader = shader ?? shaderSolid(this.color);
     this.tickBehaviorGen = tickBehaviorGen;
     this.tickBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
@@ -353,6 +331,7 @@ class MissingWorldGen extends WorldGenerator {
     return true;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public generate(world: World, x: number, y: number, chunk: Chunk): void {
     // block type 0 = bt_missing
   }
@@ -372,12 +351,20 @@ export class World {
   private initialized = false;
   private readonly targetFps: number;
 
-  private redrawListenerCounter = 0;
-  private redrawListeners: Map<number, (chunk: Chunk, i: number) => void> = new Map();
+  // private redrawListenerCounter = 0;
+  // private redrawListeners: Map<number, (chunk: Chunk, i: number) => void> = new Map();
 
   constructor(worldGenGen: (world: World) => WorldGenerator) {
     this.registerBlockType(bt_missing);
     this.worldGenGen = worldGenGen ?? ((world: World) => new MissingWorldGen(world));
+  }
+
+  public isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  public getBlockTypeCount(): number {
+    return this.blockTypes.length;
   }
 
   public init(): boolean {
@@ -413,7 +400,7 @@ export class World {
   public setBlockData(chunk: Chunk, i: number, data: BlockData): void {
     chunk.setNextBlockData(i, data);
     chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
-    this.requestBlockRedraw(chunk, i);
+    // this.requestBlockRedraw(chunk, i);
     this.queueNeighbors(chunk, i, true);
   }
 
@@ -435,7 +422,7 @@ export class World {
       chunk.setNextTypeOfBlock(i, typeId);
       chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
 
-      this.requestBlockRedraw(chunk, i);
+      // this.requestBlockRedraw(chunk, i);
       this.queueNeighbors(chunk, i, true);
     }
   }
@@ -486,19 +473,19 @@ export class World {
     }
   }
 
-  public registerRedrawListener(func: (chunk: Chunk, i: number) => void): number {
-    this.redrawListenerCounter++;
-    this.redrawListeners.set(this.redrawListenerCounter, func);
-    return this.redrawListenerCounter;
-  }
+  // public registerRedrawListener(func: (chunk: Chunk, i: number) => void): number {
+  //   this.redrawListenerCounter++;
+  //   this.redrawListeners.set(this.redrawListenerCounter, func);
+  //   return this.redrawListenerCounter;
+  // }
 
-  public unregisterRedrawListener(id: number): void {
-    this.redrawListeners.delete(id);
-  }
+  // public unregisterRedrawListener(id: number): void {
+  //   this.redrawListeners.delete(id);
+  // }
 
-  public requestBlockRedraw(chunk: Chunk, i: number): void {
-    this.redrawListeners.forEach(f => f(chunk, i));
-  }
+  // public requestBlockRedraw(chunk: Chunk, i: number): void {
+  //   this.redrawListeners.forEach(f => f(chunk, i));
+  // }
 
   /**
    * Logic update for all pending blocks
@@ -515,7 +502,9 @@ export class World {
       }
       chunk.resetNexts();
     }
-    for (const [, chunk] of this.loadedChunks) {
+    const chunks = Array.from(this.loadedChunks.values());
+    shuffleArray(this.getRandomFloatBound, chunks);
+    for (const chunk of chunks) {
       if (!chunk.pendingTick) {
         continue;
       }

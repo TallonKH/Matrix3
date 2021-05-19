@@ -1,6 +1,8 @@
 import { World, CHUNK_SIZE, CHUNK_MODMASK, CHUNK_BITSHIFT, CHUNK_SIZEm1, CHUNK_SIZE2, UpdateFlags, Chunk } from "./base";
 import { NPoint, PointStr, ZERO } from "./lib/NLib/npoint";
-// import { GPU } from "gpu.js";
+import { Kernel } from "gpu.js";
+import getShaderKernel from "./display-shader";
+import { Color } from "./library";
 
 // [minX, minY, maxX, maxY], inclusive
 type Rect = [number, number, number, number];
@@ -9,7 +11,24 @@ export enum RedrawMode {
   SMART = 0,
   ALWAYS = 1,
   FLAGS = 2,
-} export default class GridDisplay {
+}
+export type BlockShaderFactorMap = {
+  min: Color,
+  max: Color,
+  randFactor?: number,
+  noise1Factor?: number, noise1ScaleX?: number, noise1ScaleY?: number, noise1ScaleTime?: number
+  noise2Factor?: number, noise2ScaleX?: number, noise2ScaleY?: number, noise2ScaleTime?: number
+}
+
+export type BlockShaderFactorList = [
+  number, number, number,
+  number, number, number,
+  number,
+  number, number, number, number,
+  number, number, number, number
+];
+
+export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
 
   private ctx: CanvasRenderingContext2D;
@@ -54,14 +73,17 @@ export enum RedrawMode {
   private chunkPendingRects: Map<PointStr, [NPoint, Rect]> = new Map();
   private static readonly FULL_RECT: Rect = [0, 0, CHUNK_SIZEm1, CHUNK_SIZEm1];
 
-  // coord hash : data, chunk coord
+  // coord hash : chunk coord, data
   private cachedChunkColorData: Map<PointStr, [NPoint, ImageData]> = new Map();
 
   //TODO make this not-readonly (need to create a new interval)
   private readonly targetFPS;
-  private cacheBuffer = 1;
+  private cacheBuffer = 0;
 
-  constructor(targetFps = 60) {
+  private blockShaders: Array<BlockShaderFactorList> = [];
+  private shaderKernel;
+
+  constructor(targetFps = 30) {
     this.targetFPS = targetFps;
     const ctx = this.canvas.getContext("2d");
     if (ctx === null) {
@@ -94,6 +116,7 @@ export enum RedrawMode {
       this.recalcVisibleChunks();
     });
 
+    this.shaderKernel = getShaderKernel().setOutput([CHUNK_SIZE, CHUNK_SIZE]);
     // screen follows mouse
     // document.addEventListener("mousemove", (e) => {
     //   this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
@@ -109,6 +132,27 @@ export enum RedrawMode {
 
   public getViewOrigin(): NPoint {
     return this.viewOrigin;
+  }
+
+  public registerBlockShader(blockName: string, args: BlockShaderFactorMap): BlockShaderFactorList | null {
+    if (this.world === null || !this.world.isInitialized()) {
+      throw "cannot register a block shader before world is linked/initialized!";
+    }
+    const id = this.world.getBlockTypeIndex(blockName);
+    if (id === undefined) {
+      console.warn(`failed to register shader for unknown block '${blockName}'`);
+      return null;
+    }
+
+    const argList: BlockShaderFactorList = [
+      args.min.r, args.min.g, args.min.b,
+      args.max.r, args.max.g, args.max.b,
+      args.randFactor ?? 1,
+      args.noise1Factor ?? 0, args.noise1ScaleX ?? 0.1, args.noise1ScaleY ?? 0.1, args.noise1ScaleTime ?? 0,
+      args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0
+    ];
+    this.blockShaders[id] = argList;
+    return argList;
   }
 
   /**
@@ -142,7 +186,7 @@ export enum RedrawMode {
       for (let x = newMinX; x <= newMaxX; x++) {
         for (let y = newMinY; y <= newMaxY; y++) {
           this.world.requestChunkLoad(x, y);
-          this.requestChunkRedraw(new NPoint(x, y));
+          // this.requestChunkRedraw(new NPoint(x, y));
         }
       }
     } else {
@@ -157,7 +201,7 @@ export enum RedrawMode {
           for (let y = oldMinY; y <= oldMaxY; y++) {
             if (x < newMinX || x > newMaxX || y < newMinY || y > newMaxY) {
               this.world.requestChunkUnload(x, y);
-              this.cancelChunkRedraw(new NPoint(x, y));
+              // this.cancelChunkRedraw(new NPoint(x, y));
             }
           }
         }
@@ -165,7 +209,7 @@ export enum RedrawMode {
           for (let y = newMinY; y <= newMaxY; y++) {
             if (x < oldMinX || x > oldMaxX || y < oldMinY || y > oldMaxY) {
               this.world.requestChunkLoad(x, y);
-              this.requestChunkRedraw(new NPoint(x, y));
+              // this.requestChunkRedraw(new NPoint(x, y));
             }
           }
         }
@@ -175,38 +219,38 @@ export enum RedrawMode {
     this.visibleMax = new NPoint(newMaxX, newMaxY);
   }
 
-  public requestChunkRedraw(chunkCoord: NPoint): void {
-    this.redrawRequested |= 2;
-    this.chunkPendingRects.set(chunkCoord.toHash(), [chunkCoord, GridDisplay.FULL_RECT]);
-  }
+  // public requestChunkRedraw(chunkCoord: NPoint): void {
+  //   this.redrawRequested |= 2;
+  //   this.chunkPendingRects.set(chunkCoord.toHash(), [chunkCoord, GridDisplay.FULL_RECT]);
+  // }
 
-  private cancelChunkRedraw(chunkCoord: NPoint) {
-    this.chunkPendingRects.delete(chunkCoord.toHash());
-  }
+  // private cancelChunkRedraw(chunkCoord: NPoint) {
+  //   this.chunkPendingRects.delete(chunkCoord.toHash());
+  // }
 
-  /**
-   * in reality, this function just queues a chunk redraw
-   * (and more important, updates the dirty rect within that chunk)
-   */
-  private queueBlockRedraw(chunk: Chunk, i: number) {
-    this.redrawRequested |= 4;
-    const x = i & CHUNK_MODMASK;
-    const y = i >> CHUNK_BITSHIFT;
+  // /**
+  //  * in reality, this function just queues a chunk redraw
+  //  * (and more important, updates the dirty rect within that chunk)
+  //  */
+  // private queueBlockRedraw(chunk: Chunk, i: number) {
+  //   this.redrawRequested |= 4;
+  //   const x = i & CHUNK_MODMASK;
+  //   const y = i >> CHUNK_BITSHIFT;
 
-    const chunkCoord = chunk.coord;
+  //   const chunkCoord = chunk.coord;
 
-    const hash = chunkCoord.toHash();
-    const prect = this.chunkPendingRects.get(hash);
-    if (prect === undefined) {
-      this.chunkPendingRects.set(hash, [chunkCoord, [x, y, x, y]]);
-    } else {
-      const rect = prect[1];
-      rect[0] = Math.min(x, rect[0]);
-      rect[1] = Math.min(y, rect[1]);
-      rect[2] = Math.max(x, rect[2]);
-      rect[3] = Math.max(y, rect[3]);
-    }
-  }
+  //   const hash = chunkCoord.toHash();
+  //   const prect = this.chunkPendingRects.get(hash);
+  //   if (prect === undefined) {
+  //     this.chunkPendingRects.set(hash, [chunkCoord, [x, y, x, y]]);
+  //   } else {
+  //     const rect = prect[1];
+  //     rect[0] = Math.min(x, rect[0]);
+  //     rect[1] = Math.min(y, rect[1]);
+  //     rect[2] = Math.max(x, rect[2]);
+  //     rect[3] = Math.max(y, rect[3]);
+  //   }
+  // }
 
   public startDrawLoop(): void {
     if (this.redrawLoopRunning) {
@@ -215,8 +259,12 @@ export enum RedrawMode {
 
     const boundIteration = this.drawLoopIteration.bind(this);
     window.setInterval(() => {
-      if (this.redrawRequested > 0 && !this.redrawPending && this.resizeHappened) {
-        this.redrawRequested = 0;
+      // if (this.redrawRequested > 0 && !this.redrawPending && this.resizeHappened) {
+      //   this.redrawRequested = 0;
+      //   this.redrawPending = true;
+      //   window.requestAnimationFrame(boundIteration);
+      // }
+      if (!this.redrawPending && this.resizeHappened) {
         this.redrawPending = true;
         window.requestAnimationFrame(boundIteration);
       }
@@ -246,13 +294,27 @@ export enum RedrawMode {
       this.cachedChunkColorData.delete(coord);
     }
 
-    for (const coordRectPair of this.chunkPendingRects) {
-      this.redrawChunkRect(coordRectPair[0], coordRectPair[1][0], coordRectPair[1][1]);
+    if(this.world === null){
+      throw "can't draw if world is null!";
     }
+
+    for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
+      for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
+        const chunk = this.world.getChunk(x,y);
+        if(chunk === undefined){
+          continue;
+        }
+        this.redrawChunkGPU(this.world, chunk);
+      }
+    }
+
+    // for (const coordRectPair of this.chunkPendingRects) {
+    //   this.redrawChunkRect(coordRectPair[0], coordRectPair[1][0], coordRectPair[1][1]);
+    // }
 
     this.renderView();
     this.redrawPending = false;
-    this.chunkPendingRects.clear();
+    // this.chunkPendingRects.clear();
   }
 
   private renderView() {
@@ -291,16 +353,16 @@ export enum RedrawMode {
       const colIndex = i << 2;
 
       switch (mode) {
-        case RedrawMode.ALWAYS: {
-          const blockType = this.world.getBlockType(chunk.getTypeOfBlock(i));
-          const color = blockType.shader(this.world, chunk, i, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT);
+        // case RedrawMode.ALWAYS: {
+        //   const blockType = this.world.getBlockType(chunk.getTypeOfBlock(i));
+        //   const color = blockType.shader(this.world, chunk, i, i & CHUNK_MODMASK, i >> CHUNK_BITSHIFT);
 
-          colors.data[colIndex + 0] = ~~(color.r * 255);
-          colors.data[colIndex + 1] = ~~(color.g * 255);
-          colors.data[colIndex + 2] = ~~(color.b * 255);
-          colors.data[colIndex + 3] = 255;
-          break;
-        }
+        //   colors.data[colIndex + 0] = ~~(color.r * 255);
+        //   colors.data[colIndex + 1] = ~~(color.g * 255);
+        //   colors.data[colIndex + 2] = ~~(color.b * 255);
+        //   colors.data[colIndex + 3] = 255;
+        //   break;
+        // }
         case RedrawMode.FLAGS: {
           colors.data[colIndex + 0] = chunk.getFlagOfBlock(i, UpdateFlags.PENDING_TICK) ? 100 : 0;
           colors.data[colIndex + 1] = chunk.getFlagOfBlock(i, UpdateFlags.PENDING_REDRAW) ? 100 : 0;
@@ -313,55 +375,83 @@ export enum RedrawMode {
     return colors;
   }
 
-  private redrawChunkRect(chunkHash: string, coord: NPoint, rect: Rect) {
-    if (this.world === null) {
-      throw "can't redraw chunk rect when world is null!";
-    }
+  private redrawChunkGPU(world: World, chunk: Chunk) {
+    const chunkHash = chunk.coord.toHash();
 
-    const dat = this.cachedChunkColorData.get(chunkHash) ?? [coord, new ImageData(CHUNK_SIZE, CHUNK_SIZE)];
+    const dat = this.cachedChunkColorData.get(chunkHash) ?? [chunk.coord, new ImageData(CHUNK_SIZE, CHUNK_SIZE)];
     this.cachedChunkColorData.set(chunkHash, dat);
     const colors = dat[1];
 
+    this.shaderKernel(
+      [CHUNK_SIZE, CHUNK_BITSHIFT, chunk.coord.x, chunk.coord.y, world.getTime()],
+      this.blockShaders,
+      chunk.getBlockTypes(),
+      chunk.getBlockIds()
+    );
 
-    const xi = rect[0];
-    const yi = rect[1];
-    const w = rect[2] - rect[0];
-    const h = rect[3] - rect[1];
-    const chunk = this.world.getChunkByHash(chunkHash);
-    // sometimes a chunk will be unloaded before the draw has finished, so it will be undefined here.
-    // that's not a big deal; just ignore it and continue
-    if (chunk === undefined) {
-      return;
-    }
-    // use <= because rects are inclusive
-    for (let x = 0; x <= w; x++) {
-      for (let y = 0; y <= h; y++) {
-        const blockIndex = (x + xi) + ((y + yi) << CHUNK_BITSHIFT);
-        const blockType = this.world.getBlockType(chunk.getTypeOfBlock(blockIndex));
-        const color = blockType.shader(this.world, chunk, blockIndex, x, y);
-
-        const colIndex = blockIndex << 2;
-        colors.data[colIndex + 0] = ~~(color.r * 255);
-        colors.data[colIndex + 1] = ~~(color.g * 255);
-        colors.data[colIndex + 2] = ~~(color.b * 255);
-        colors.data[colIndex + 3] = 255;
-      }
-    }
+    //use :any because typescript is confused about the output type of getPixels 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pixels: any = this.shaderKernel.getPixels(true);
+    colors.data.set(pixels);
   }
+
+  // private redrawChunkRect(chunkHash: string, coord: NPoint, rect: Rect) {
+  //   if (this.world === null) {
+  //     throw "can't redraw chunk rect when world is null!";
+  //   }
+
+  //   const dat = this.cachedChunkColorData.get(chunkHash) ?? [coord, new ImageData(CHUNK_SIZE, CHUNK_SIZE)];
+  //   this.cachedChunkColorData.set(chunkHash, dat);
+  //   const colors = dat[1];
+
+  //   const chunk = this.world.getChunkByHash(chunkHash);
+  //   // sometimes a chunk will be unloaded before the draw has finished, so it will be undefined here.
+  //   // that's not a big deal; just ignore it and continue
+  //   if (chunk === undefined) {
+  //     return;
+  //   }
+
+  //   const xi = rect[0];
+  //   const yi = rect[1];
+  //   const w = rect[2] - rect[0];
+  //   const h = rect[3] - rect[1];
+  //   const chunk = this.world.getChunkByHash(chunkHash);
+  //   // sometimes a chunk will be unloaded before the draw has finished, so it will be undefined here.
+  //   // that's not a big deal; just ignore it and continue
+  //   if (chunk === undefined) {
+  //     return;
+  //   }
+  //   // use <= because rects are inclusive
+  //   for (let x = 0; x <= w; x++) {
+  //     for (let y = 0; y <= h; y++) {
+  //       const blockIndex = (x + xi) + ((y + yi) << CHUNK_BITSHIFT);
+  //       const blockType = this.world.getBlockType(chunk.getTypeOfBlock(blockIndex));
+  //       const color = blockType.shader(this.world, chunk, blockIndex, x, y);
+
+  //       const colIndex = blockIndex << 2;
+  //       colors.data[colIndex + 0] = ~~(color.r * 255);
+  //       colors.data[colIndex + 1] = ~~(color.g * 255);
+  //       colors.data[colIndex + 2] = ~~(color.b * 255);
+  //       colors.data[colIndex + 3] = 255;
+  //     }
+  //   }
+  // }
 
   public unlink(): void {
     if (this.world === null) {
       return;
     }
-    this.world.unregisterRedrawListener(this.worldDrawListenerId);
+    // this.world.unregisterRedrawListener(this.worldDrawListenerId);
     this.world = null;
+    this.blockShaders = [];
   }
 
   public link(world: World): void {
     this.unlink();
     this.world = world;
-
-    this.world.registerRedrawListener(this.queueBlockRedraw.bind(this));
+    this.blockShaders = new Array(this.world.getBlockTypeCount());
+    this.registerBlockShader("missing", { min: new Color(1, 0, 0), max: new Color(0, 0, 1) });
+    // this.world.registerRedrawListener(this.queueBlockRedraw.bind(this));
     this.recalcVisibleChunks();
   }
 

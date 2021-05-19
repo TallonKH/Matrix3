@@ -1,7 +1,6 @@
 import { Chunk, World, WorldGenerator, BlockType, densityConstant, updateStatic } from "./base";
-import GridDisplay, { RedrawMode } from "./display";
+import GridDisplay, { BlockShaderFactorMap, RedrawMode } from "./display";
 import { Color } from "./library";
-import { shaderLerp } from "./shaders";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { updateCascade, updateCrumble, updateFall, updateFlow } from "./tick-behaviors";
 
@@ -15,18 +14,21 @@ class CheckerGen extends WorldGenerator {
   }
 
   public init(): boolean {
-    this.typeA = this.world.getBlockTypeIndex("air") ?? 0;
-    this.typeB = this.world.getBlockTypeIndex("stone") ?? 0;
-    this.typeC = this.world.getBlockTypeIndex("water") ?? 0;
-    this.typeD = this.world.getBlockTypeIndex("cobble") ?? 0;
+    this.typeA = this.world.getBlockTypeIndex("water") ?? 0;
+    this.typeB = this.world.getBlockTypeIndex("air") ?? 0;
+    this.typeC = this.world.getBlockTypeIndex("stone") ?? 0;
+    this.typeD = this.world.getBlockTypeIndex("gravel") ?? 0;
     return (this.typeA !== 0 && this.typeB !== 0);
   }
 
   public generate(_world: World, x: number, y: number, chunk: Chunk): void {
     const grid = chunk.getBlockTypes();
-    grid.fill((x & 1) ^ (y & 1) ? ((y & 2) ^ (x & 2) ? this.typeC : this.typeA) : ((y & 5)^(x & 3) ? this.typeD : this.typeB));
+    grid.fill((x & 1) ^ (y & 1) ? ((y & 2) ^ (x & 2) ? this.typeC : this.typeA) : ((y & 5) ^ (x & 3) ? this.typeD : this.typeB));
   }
 }
+
+// registering blocks
+const shaderData: Map<string, BlockShaderFactorMap> = new Map();
 
 const bt_air = new BlockType({
   name: "air",
@@ -34,29 +36,58 @@ const bt_air = new BlockType({
   densityFunc: densityConstant(10),
   tickBehaviorGen: () => updateFlow(1, updateStatic),
 });
+shaderData.set("air", {
+  min: new Color(0.9, 0.95, 1),
+  max: new Color(0.9, 0.95, 1),
+});
 
 const bt_cobble = new BlockType({
-  name: "cobble",
+  name: "gravel",
   color: new Color(0.4, 0.4, 0.4),
-  shader: shaderLerp(new Color(0.35, 0.32, 0.32), new Color(0.47, 0.47, 0.47)),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateCrumble(updateStatic),
+});
+shaderData.set("gravel", {
+  min: new Color(0.35, 0.32, 0.32),
+  max: new Color(0.47, 0.47, 0.47),
 });
 
 const bt_stone = new BlockType({
   name: "stone",
   color: new Color(0.5, 0.5, 0.5),
-  shader: shaderLerp(new Color(0.46, 0.46, 0.46), new Color(0.55, 0.55, 0.55)),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateStatic,
+});
+shaderData.set("stone", {
+  min: new Color(0.46, 0.46, 0.46),
+  max: new Color(0.55, 0.55, 0.55),
+  randFactor: 0.4,
+  noise1Factor: 0.3,
+  noise1ScaleX: 0.05,
+  noise1ScaleY: 0.1,
+  noise2Factor: 0.3,
+  noise2ScaleX: 0.5,
+  noise2ScaleY: 0.5,
 });
 
 const bt_water = new BlockType({
   name: "water",
   color: new Color(0.4, 0.4, 0.4),
-  shader: shaderLerp(new Color(0.20, 0.42, 0.97), new Color(0.25, 0.55, 1)),
   densityFunc: densityConstant(100),
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),
+});
+shaderData.set("water", {
+  min: new Color(0.20, 0.42, 0.97),
+  max: new Color(0.25, 0.55, 1),
+  randFactor: 0.2,
+  noise1Factor: 0.6,
+  noise1ScaleX: 0.05,
+  noise1ScaleY: 0.1,
+  noise1ScaleTime: 0.015,
+  noise2Factor: 0.2,
+  noise2ScaleX: 0.5,
+  noise2ScaleY: 0.5,
+  noise2ScaleTime: 0.1,
 });
 
 const world = new World((w: World) => new CheckerGen(w));
@@ -68,7 +99,7 @@ world.init();
 
 const a = false;
 const container = document.getElementById("inner-container");
-if(container === null){
+if (container === null) {
   throw "no container";
 }
 
@@ -79,8 +110,11 @@ mainDisplay.canvas.style.border = "2px solid black";
 // mainDisplay.canvas.style.background = "linear-gradient(0deg, #0F0 0%, #040 100%)";
 container.appendChild(mainDisplay.canvas);
 mainDisplay.link(world);
+for (const shader of shaderData) {
+  mainDisplay.registerBlockShader(shader[0], shader[1]);
+}
 
-if(a){
+if (a) {
   const flagDisplay = new GridDisplay();
   // flagDisplay.canvas.style.height = "100%";
   flagDisplay.canvas.style.border = "2px solid black";
@@ -106,8 +140,8 @@ let leftKeyDown = false;
 let rightKeyDown = false;
 let upKeyDown = false;
 let downKeyDown = false;
-document.addEventListener("keydown", (e)=>{
-  switch(e.key){
+document.addEventListener("keydown", (e) => {
+  switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = true;
       break;
@@ -123,8 +157,8 @@ document.addEventListener("keydown", (e)=>{
   }
 });
 
-document.addEventListener("keyup", (e)=>{
-  switch(e.key){
+document.addEventListener("keyup", (e) => {
+  switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = false;
       break;
@@ -135,23 +169,23 @@ document.addEventListener("keyup", (e)=>{
       upKeyDown = false;
       break;
     case "ArrowDown":
-      downKeyDown = false
+      downKeyDown = false;
       break;
   }
 });
 
-const panSpeed = -10;
-window.setInterval(()=>{
-  if(leftKeyDown){
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed,0));
+const panSpeed = -100;
+window.setInterval(() => {
+  if (leftKeyDown) {
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
   }
-  if(rightKeyDown){
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed,0));
+  if (rightKeyDown) {
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
   }
-  if(upKeyDown){
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0,-panSpeed));
+  if (upKeyDown) {
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
   }
-  if(downKeyDown){
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0,panSpeed));
+  if (downKeyDown) {
+    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
   }
-}, (1000/60));
+}, (1000 / 20));
