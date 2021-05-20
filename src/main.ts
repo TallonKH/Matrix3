@@ -175,3 +175,8 @@ window.setInterval(() => {
     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
   }
 }, (1000 / 20));
+
+world.registerBlockType(bt_air);
+world.registerBlockType(bt_cobble);
+world.registerBlockType(bt_stone);
+world.registerBlockType(bt_water);

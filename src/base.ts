@@ -25,9 +25,6 @@ export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
 export type GlobalCoord = NPoint;
 export type LocalCoord = NPoint;
 
-type Grid8 = Uint8Array;
-type Grid16 = Uint16Array;
-
 // Block Tick Behavior
 export type TickBehavior = (world: World, chunk: Chunk, index: number) => void;
 // eslint-disable-next-line no-empty-function
@@ -37,7 +34,11 @@ export const updateStatic: TickBehavior = () => { };
 export type DensityFunc = (world: World, chunk: Chunk, index: number) => number;
 export const densityConstant: (val: number) => DensityFunc = (val) => (() => val);
 
-export type BlockData = { creationTime: number, id: number, type: number };
+export type BlockData = {
+  // creationTime: number,
+  id: number,
+  type: number 
+};
 
 interface BlockTypeArgs {
   name: string,
@@ -134,14 +135,17 @@ export class Chunk {
    * 1: ~~received tick~~
    * 2: locked
    */
-  private readonly flags: Grid8 = new Uint8Array(CHUNK_SIZE2);
-  private readonly flagsNext: Grid8 = new Uint8Array(CHUNK_SIZE2);
-  private readonly creationTimes: Grid16 = new Uint16Array(CHUNK_SIZE2); // wraps around
-  private readonly creationTimesNext: Grid16 = new Uint16Array(CHUNK_SIZE2);
-  private readonly ids: Grid8 = new Uint8Array(CHUNK_SIZE2); // ids are not unique; just random
-  private readonly idsNext: Grid8 = new Uint8Array(CHUNK_SIZE2);
-  private readonly types: Grid16 = new Uint16Array(CHUNK_SIZE2);
-  private readonly typesNext: Grid16 = new Uint16Array(CHUNK_SIZE2);
+  private readonly flags: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+  private readonly flagsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+
+  // private readonly creationTimes: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // wraps around
+  // private readonly creationTimesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  private readonly ids: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // ids are not unique; just random
+  private readonly idsNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  private readonly temps: Uint8Array = new Uint8Array(CHUNK_SIZE2); // ids are not unique; just random
+  private readonly tempsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+  private readonly types: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  private readonly typesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
 
   public readonly x: number;
   public readonly y: number;
@@ -155,27 +159,27 @@ export class Chunk {
 
   public getBlockData(i: number): BlockData {
     return {
-      creationTime: this.creationTimes[i],
+      // creationTime: this.creationTimes[i],
       id: this.ids[i],
       type: this.types[i],
     };
   }
 
   public setNextBlockData(i: number, data: BlockData): void {
-    this.creationTimesNext[i] = data.creationTime;
+    // this.creationTimesNext[i] = data.creationTime;
     this.idsNext[i] = data.id;
     this.typesNext[i] = data.type;
   }
 
   public applyNexts(): void {
-    this.creationTimes.set(this.creationTimesNext);
+    // this.creationTimes.set(this.creationTimesNext);
     this.ids.set(this.idsNext);
     this.types.set(this.typesNext);
   }
 
   public resetNexts(): void {
     this.flags.fill(0);
-    this.creationTimesNext.set(this.creationTimes);
+    // this.creationTimesNext.set(this.creationTimes);
     this.idsNext.set(this.ids);
     this.typesNext.set(this.types);
   }
@@ -195,18 +199,18 @@ export class Chunk {
   /**
    * Don't mess with this unless you know what you're doing.
    */
-  public getBlockTypes(): Uint16Array {
+  public getBlockTypes(): Uint8ClampedArray {
     return this.types;
   }
 
   /**
    * Don't mess with this unless you know what you're doing.
    */
-  public getBlockIds(): Uint8Array {
+  public getBlockIds(): Uint8ClampedArray {
     return this.ids;
   }
 
-  public getNextBlockTypes(): Uint16Array {
+  public getNextBlockTypes(): Uint8ClampedArray {
     return this.typesNext;
   }
 
@@ -214,13 +218,13 @@ export class Chunk {
     this.typesNext[index] = id;
   }
 
-  public getCreationTimeOfBlock(index: number): number {
-    return this.creationTimes[index];
-  }
+  // public getCreationTimeOfBlock(index: number): number {
+  //   return this.creationTimes[index];
+  // }
 
-  public setNextCreationTimeOfBlock(index: number, id: number): void {
-    this.creationTimesNext[index] = id;
-  }
+  // public setNextCreationTimeOfBlock(index: number, id: number): void {
+  //   this.creationTimesNext[index] = id;
+  // }
 
   public getFlagOfBlock(index: number, flag: UpdateFlags): boolean {
     return ((this.flags[index] >> flag) & 1) === 1;
@@ -376,16 +380,16 @@ export class World {
     return true;
   }
 
-  public startTickLoop(targetTickrate: number): void {
-    if (this.ticking) {
-      throw "already ticking!";
-    }
-    this.ticking = true;
+  // public startTickLoop(targetTickrate: number): void {
+  //   if (this.ticking) {
+  //     throw "already ticking!";
+  //   }
+  //   this.ticking = true;
 
-    window.setInterval(() => {
-      this.performGlobalTick();
-    }, ~~(1000 / targetTickrate));
-  }
+  //   window.setInterval(() => {
+  //     this.performGlobalTick();
+  //   }, ~~(1000 / targetTickrate));
+  // }
 
   public getTypeOfBlock(chunk: Chunk, i: number): number {
     return chunk.getTypeOfBlock(i);
@@ -399,8 +403,8 @@ export class World {
 
   public trySetTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
     if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
-      // reset creation time
-      chunk.setNextCreationTimeOfBlock(i, this.time);
+      // // reset creation time
+      // chunk.setNextCreationTimeOfBlock(i, this.time);
       // reset id
       this.rand = mixRands(this.rand, i + this.time);
       chunk.setNextBlockId(i, mixRands(this.rand, i) & 0b11111111);
