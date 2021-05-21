@@ -1,5 +1,5 @@
-import { GPU, IKernelFunctionThis } from 'gpu.js';
-import { BlockShaderFactorList } from './display';
+import { GPU, IKernelFunctionThis } from "gpu.js";
+import { BlockShaderFactorList } from "./display";
 const gpu = new GPU();
 
 function mod(n: number, m: number): number {

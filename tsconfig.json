@@ -10,6 +10,7 @@
       "WebWorker",
       "dom",
       "esnext",
+      "ScriptHost",
     ],
     "downlevelIteration": true,
     "strictNullChecks": true,

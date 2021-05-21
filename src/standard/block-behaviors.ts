@@ -1,15 +1,6 @@
-import { TickBehavior, UpdateFlags, updateStatic } from "./base";
-import { NPoint } from "./lib/NLib/npoint";
-import { Chunk } from "./base";
-
-const DOWN = new NPoint(0, 1);
-const UP = new NPoint(0, -1);
-const LEFT = new NPoint(-1, 0);
-const RIGHT = new NPoint(1, 0);
-const DOWN_LEFT = new NPoint(-1, 1);
-const UP_LEFT = new NPoint(-1, 1);
-const DOWN_RIGHT = new NPoint(1, 1);
-const UP_RIGHT = new NPoint(1, -1);
+import { TickBehavior } from "../simulation/matrix-blocktype";
+import Chunk, { UpdateFlags } from "../simulation/matrix-chunk";
+import { DOWN, DOWN_LEFT, DOWN_RIGHT, LEFT, NPoint, RIGHT } from "../lib/NLib/npoint";
 
 export const updateDisplaceN: (offsets: Array<NPoint>, fallback: TickBehavior) => TickBehavior =
   (offsets, fallback) =>

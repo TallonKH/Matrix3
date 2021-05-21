@@ -1,8 +1,8 @@
-import { CHUNK_SIZE, CHUNK_BITSHIFT } from "./base";
-import { NPoint, ZERO } from "./lib/NLib/npoint";
+import { CHUNK_SIZE, CHUNK_BITSHIFT } from "../matrix-common";
+import { NPoint, ZERO } from "../lib/NLib/npoint";
 import getShaderKernel from "./display-shader";
-import { Color } from "./library";
-import { MatrixClient } from "./workers/client";
+import { Color } from "../library";
+import MatrixClient from "./client";
 
 export type BlockShaderFactorMap = {
   min: Color,
@@ -112,6 +112,10 @@ export default class GridDisplay {
     return this.viewOrigin;
   }
 
+  public registerBlockNameId(name: string, id: number): void {
+    this.blockTypeNameIdMap.set(name, id);
+  }
+
   public registerBlockShader(blockName: string, args: BlockShaderFactorMap): BlockShaderFactorList | null {
     const id = this.blockTypeNameIdMap.get(blockName) ?? 0;
 
@@ -215,7 +219,9 @@ export default class GridDisplay {
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkData = this.client.getChunkData(x, y);
-        
+        if (chunkData === null) {
+          continue;
+        }
         this.shaderKernel(
           [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, Date.now()],
           this.blockShaders,

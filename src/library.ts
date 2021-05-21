@@ -1,4 +1,5 @@
 import { lerp } from "./lib/NLib/nmath";
+import { NPoint, ZERO } from "./lib/NLib/npoint";
 
 export function randify(a: number): number {
   // the logic here is arbitrary; it just takes an input and mixes it into something unpredictable
@@ -73,3 +74,29 @@ export class Color {
     return this.boperate(a, b, (ca, cb) => lerp(ca, cb, factor));
   }
 }
+
+enum Neighbors {
+  UP = 0,
+  UP_RIGHT = 1,
+  RIGHT = 2,
+  DOWN_RIGHT = 3,
+  DOWN = 4,
+  DOWN_LEFT = 5,
+  LEFT = 6,
+  UP_LEFT = 7,
+  CENTER = 8
+}
+
+export const DIRECTIONS = [
+  new NPoint(0, 1), new NPoint(1, 1), new NPoint(1, 0),
+  new NPoint(1, -1), new NPoint(0, -1), new NPoint(-1, -1),
+  new NPoint(-1, 0), new NPoint(-1, 1), ZERO
+];
+
+export const ANTIDIRS = [4, 5, 6, 7, 0, 1, 2, 3, 8];
+
+export const NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
+  [Neighbors.DOWN_LEFT, Neighbors.LEFT, Neighbors.UP_LEFT],
+  [Neighbors.DOWN, Neighbors.CENTER, Neighbors.UP],
+  [Neighbors.DOWN_RIGHT, Neighbors.RIGHT, Neighbors.UP_RIGHT]
+]);
