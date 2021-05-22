@@ -1,5 +1,4 @@
 import { NPoint } from "../lib/NLib/npoint";
-import MatrixClient from "../client/client";
 import WorldHandler, { PartialChunkData } from "../world-handler";
 import World from "../simulation/matrix-world";
 import WorldGenerator from "../simulation/matrix-worldgen";
@@ -22,6 +21,7 @@ export default class MatrixServer extends WorldHandler {
     for(const blockType of blockTypes){
       this.world.registerBlockType(blockType);
     }
+    this.world.init();
   }
 
   // public registerClient(client: MatrixClient): void {
@@ -50,5 +50,9 @@ export default class MatrixServer extends WorldHandler {
     for (const [x, y] of toUnloads) {
       this.world.requestChunkUnload(x, y);
     }
+  }
+
+  public performGlobalTick(): void{
+    this.world.performGlobalTick();
   }
 }

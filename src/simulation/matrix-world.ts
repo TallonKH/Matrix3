@@ -165,7 +165,11 @@ export default class World {
     if (!this.initialized) {
       throw "Attempted global tick before initialization";
     }
-
+    
+    if(this.loadedChunks.size === 0){
+      return;
+    }
+    
     // update pending chunks/blocks
     for (const [, chunk] of this.loadedChunks) {
       if (!chunk.pendingTick) {
@@ -173,6 +177,7 @@ export default class World {
       }
       chunk.resetNexts();
     }
+
     const chunks = Array.from(this.loadedChunks.values());
     shuffleArray(this.getRandomFloatBound, chunks);
     for (const chunk of chunks) {
@@ -187,6 +192,7 @@ export default class World {
         }
       }
     }
+
     for (const [, chunk] of this.loadedChunks) {
       if (!chunk.pendingTick) {
         continue;
@@ -201,15 +207,15 @@ export default class World {
         });
       }
     }
-
+    
     // apply/flush the pendingPending buffer
     for (const [, chunk] of this.loadedChunks) {
       if (!chunk.pendingTick) {
         continue;
       }
-      chunk.pendingTick = false;
-
+      
       chunk.blocksPendingTick = chunk.blocksPendingPendingTick;
+      chunk.pendingTick = chunk.blocksPendingTick.length > 0;
       chunk.blocksPendingPendingTick = [];
     }
 
@@ -293,13 +299,12 @@ export default class World {
     const ids = newChunk.getBlockIds();
     for (let i = 0; i < CHUNK_SIZE2; i++) {
       rand = mixRands(rand, i);
-      ids[i] = rand;
+      ids[i] = rand & 0b11111111;
     }
-    rand = 0;
 
-    for (let i = 0; i < CHUNK_SIZE2; i++) {
-      this.queueBlock(newChunk, i);
-    }
+    // for (let i = 0; i < CHUNK_SIZE2; i++) {
+    //   this.queueBlock(newChunk, i);
+    // }
     this.loadedChunks.set(ch, newChunk);
 
     // assign neighbors
@@ -310,6 +315,12 @@ export default class World {
         neighbor.neighbors[ANTIDIRS[i]] = newChunk;
       }
     }
+
+    // send updated data to server/clients
+    this.handler.sendChunkData(newChunk.coord, {
+      types: newChunk.getBlockTypes(),
+      ids: newChunk.getBlockIds(),
+    });
 
     return newChunk;
   }

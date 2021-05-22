@@ -89,14 +89,14 @@ function perlin(x: number, y: number, z: number): number {
 function kernelFunction(this: IKernelFunctionThis, args: [number, number, number, number, number], factors: BlockShaderFactorList[], types: Uint16Array, ids: Uint8Array): void {
   // const x = this.thread.x + (args[2] * args[0]);
   // const y = this.thread.y + (args[3] * args[0]);
-  const i = this.thread.x + ((args[0] - 1 - this.thread.y) << args[1]);
+  const i = this.thread.x + (this.thread.y << args[1]);
   const time = args[4];
 
   const type = types[i];
 
   const factor =
     (factors[type][6] * (ids[i] / 255)) +
-    (factors[type][15] * (Math.sin(factors[type][16] * (time + ids[i] * factors[type][17])) + 1) / 2);
+    (factors[type][7] * (Math.sin(time * factors[type][8] + ids[i] * factors[type][9]) + 1) / 2);
 
   // noise version
   // const factor =

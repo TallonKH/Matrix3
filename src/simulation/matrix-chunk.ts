@@ -43,13 +43,9 @@ export default class Chunk {
   private readonly types: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
   private readonly typesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
 
-  public readonly x: number;
-  public readonly y: number;
   public readonly coord: NPoint;
 
   constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
     this.coord = new NPoint(x, y);
   }
 

@@ -13,7 +13,7 @@ standardBlockTypes.push(new BlockType({
 
 
 standardBlockTypes.push(new BlockType({
-  name: "cobble",
+  name: "gravel",
   color: new Color(0.4, 0.4, 0.4),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateCrumble(updateStatic),

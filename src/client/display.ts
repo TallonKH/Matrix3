@@ -1,4 +1,4 @@
-import { CHUNK_SIZE, CHUNK_BITSHIFT } from "../matrix-common";
+import { CHUNK_SIZE, CHUNK_BITSHIFT, CHUNK_MODMASK } from "../matrix-common";
 import { NPoint, ZERO } from "../lib/NLib/npoint";
 import getShaderKernel from "./display-shader";
 import { Color } from "../library";
@@ -17,11 +17,20 @@ export type BlockShaderFactorList = [
   number, number, number,
   number, number, number,
   number,
-  number, number, number, number,
-  number, number, number, number,
+  // number, number, number, number,
+  // number, number, number, number,
   number, number, number
 ];
 
+
+const shader_missing: BlockShaderFactorList = [
+  1, 0, 1,
+  1, 0, 1,
+  0,
+  // 0,0,0,0,
+  // 0,0,0,0,
+  0, 0, 0
+];
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
 
@@ -37,7 +46,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 6;
+  private pixelsPerBlock = 8;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -52,14 +61,13 @@ export default class GridDisplay {
 
 
   private redrawPending = false;
-  private blockTypeNameIdMap: Map<string, number>;
   private client: MatrixClient;
 
   //TODO make this not-readonly (need to create a new interval)
-  private readonly targetFPS = 60;
+  private readonly targetFPS = 30;
   private cacheBuffer = 0;
 
-  private blockShaders: Array<BlockShaderFactorList> = [];
+  private blockShaders: Array<BlockShaderFactorList> = [shader_missing];
   private shaderKernel;
 
   constructor(client: MatrixClient) {
@@ -96,6 +104,7 @@ export default class GridDisplay {
     });
 
     this.shaderKernel = getShaderKernel().setOutput([CHUNK_SIZE, CHUNK_SIZE]);
+
     // screen follows mouse
     // document.addEventListener("mousemove", (e) => {
     //   this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
@@ -112,19 +121,15 @@ export default class GridDisplay {
     return this.viewOrigin;
   }
 
-  public registerBlockNameId(name: string, id: number): void {
-    this.blockTypeNameIdMap.set(name, id);
-  }
-
   public registerBlockShader(blockName: string, args: BlockShaderFactorMap): BlockShaderFactorList | null {
-    const id = this.blockTypeNameIdMap.get(blockName) ?? 0;
+    const id = this.client.getBlockIdFromName(blockName) ?? 0;
 
     const argList: BlockShaderFactorList = [
       args.min.r, args.min.g, args.min.b,
       args.max.r, args.max.g, args.max.b,
       args.randFactor ?? 1,
-      args.noise1Factor ?? 0, args.noise1ScaleX ?? 0.1, args.noise1ScaleY ?? 0.1, args.noise1ScaleTime ?? 0,
-      args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0,
+      // args.noise1Factor ?? 0, args.noise1ScaleX ?? 0.1, args.noise1ScaleY ?? 0.1, args.noise1ScaleTime ?? 0,
+      // args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0,
       args.timeFactor ?? 0, args.timeScale ?? 1, args.timeOffsetFactor ?? 0
     ];
     this.blockShaders[id] = argList;
@@ -141,12 +146,10 @@ export default class GridDisplay {
     if (!this.resizeHappened) {
       return;
     }
-
     const newMinX = Math.floor(-this.viewOriginCh.x) - this.visiblePadding;
-    const newMinY = Math.floor(-this.viewOriginCh.y) - this.visiblePadding;
+    const newMinY = Math.floor(this.viewOriginCh.y - this.dimsCh.y) + 1 - this.visiblePadding;
     const newMaxX = Math.floor(this.dimsCh.x - this.viewOriginCh.x) + this.visiblePadding;
-    const newMaxY = Math.floor(this.dimsCh.y - this.viewOriginCh.y) + this.visiblePadding;
-
+    const newMaxY = Math.floor(this.viewOriginCh.y) + 1 + this.visiblePadding;
     if (this.visibleMin === null || this.visibleMax === null) {
       this.visibleMin = new NPoint(newMinX, newMinY);
       this.visibleMax = new NPoint(newMaxX, newMaxY);
@@ -215,7 +218,7 @@ export default class GridDisplay {
       throw "can't render view when visiblemin/max are null!";
     }
     this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
-
+    const height = this.visibleMax.y - this.visibleMin.y;
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkData = this.client.getChunkData(x, y);
@@ -223,7 +226,7 @@ export default class GridDisplay {
           continue;
         }
         this.shaderKernel(
-          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, Date.now()],
+          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, Date.now() & 0xffff],
           this.blockShaders,
           chunkData.types,
           chunkData.ids
@@ -231,7 +234,7 @@ export default class GridDisplay {
         this.ctx.drawImage(
           this.shaderKernel.canvas,
           Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
-          Math.floor(y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock)
+          Math.floor(this.visibleMax.y - y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock)
         );
       }
     }
