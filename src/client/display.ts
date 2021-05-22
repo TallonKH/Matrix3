@@ -218,7 +218,9 @@ export default class GridDisplay {
       throw "can't render view when visiblemin/max are null!";
     }
     this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
-    const height = this.visibleMax.y - this.visibleMin.y;
+    
+    const limitedTimeMillis = Date.now() & 0xffffffffffff;
+
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
       for (let y = this.visibleMin.y; y <= this.visibleMax.y; y++) {
         const chunkData = this.client.getChunkData(x, y);
@@ -226,7 +228,7 @@ export default class GridDisplay {
           continue;
         }
         this.shaderKernel(
-          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, Date.now() & 0xffff],
+          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, limitedTimeMillis],
           this.blockShaders,
           chunkData.types,
           chunkData.ids
