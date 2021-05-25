@@ -4,23 +4,49 @@ import { Color } from "../library";
 export const standardBlockShaders: Map<string, BlockShaderFactorMap> = new Map();
 
 standardBlockShaders.set("air", {
-  min: new Color(0.9, 0.95, 1),
-  max: new Color(0.9, 0.95, 1),
+  min: Color.fromHex("#e6f2ff"),
+  max: Color.fromHex("#e6f2ff"),
 });
+
 standardBlockShaders.set("gravel", {
-  min: new Color(0.35, 0.32, 0.32),
-  max: new Color(0.47, 0.47, 0.47),
+  min: Color.fromHex("#5a5452"),
+  max: Color.fromHex("#787878"),
+  timeFactor1: 1,
 });
+
 standardBlockShaders.set("stone", {
-  min: new Color(0.46, 0.46, 0.46),
-  max: new Color(0.55, 0.55, 0.55),
-  randFactor: 1,
+  min: Color.fromHex("#787878"),
+  max: Color.fromHex("#8c8c8c"),
+  timeFactor1: 1,
 });
+
 standardBlockShaders.set("water", {
-  min: new Color(0.23, 0.47, 0.97),
-  max: new Color(0.25, 0.55, 1),
-  randFactor: 0.5,
-  timeFactor: 0.5,
-  timeOffsetFactor: 1,
-  timeScale: 0.001,
+  min: Color.fromHex("#3b78f7"),
+  // mid2: Color.fromHex("#408cff"),
+  // max: Color.fromHex("#86afff"),
+  max: Color.fromHex("#408cff"),
+  timeFactor1: 1,
+  timeScale1: 0.001,
+  // mid2x: 0.95,
+  // timeFactor1: 0.7,
+  // timeOffsetFactor1: 0.05,
+  // timeScale1: 0.001,
+  // timeFactor2: 0.3,
+  // timeOffsetFactor2: 1,
+  // timeScale2: 0.0001,
+});
+
+standardBlockShaders.set("lava", {
+  min: Color.fromHex("#e11010"),
+  mid1x: 0.1,
+  mid1: Color.fromHex("#ff3500"),
+  mid2x: 0.95,
+  mid2: Color.fromHex("#ffb21c"),
+  max: Color.fromHex("#efeba1"),
+  timeFactor1: 0.7,
+  timeOffsetFactor1: 0.0012,
+  timeScale1: 0.0002,
+  timeFactor2: 0.3,
+  timeOffsetFactor2: 0.1,
+  timeScale2: 0.001,
 });

@@ -41,6 +41,30 @@ export class Color {
     Object.freeze(this);
   }
 
+  public static fromHex(hex: string): Color {
+    if (hex.charAt(0) === "#") {
+      hex = hex.slice(1);
+    }
+    const l = hex.length;
+    let r;
+    let g;
+    let b;
+
+    if (l === 3 || l === 4) {
+      r = hex.charAt(0) + hex.charAt(0);
+      g = hex.charAt(1) + hex.charAt(1);
+      b = hex.charAt(2) + hex.charAt(2);
+    } else if (l === 6 || l === 8) {
+      r = hex.charAt(0) + hex.charAt(1);
+      g = hex.charAt(2) + hex.charAt(3);
+      b = hex.charAt(4) + hex.charAt(5);
+    }else {
+      throw `invalid hex code "${hex}"`;
+    }
+
+    return new Color(parseInt(r, 16) / 255, parseInt(g, 16) / 255, parseInt(b, 16) / 255);
+  }
+
   toString(): string {
     return "(" +
       this.r.toFixed(3) + ", " +

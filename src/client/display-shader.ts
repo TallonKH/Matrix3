@@ -50,6 +50,23 @@ function perlinCorner(xi: number, yi: number, zi: number, xf: number, yf: number
   return 1.1547 * dot3(f3x2m1(rand3vec3(xi + xo, yi + yo, zi + zo)), [xo - xf, yo - yf, zo - zf]);
 }
 
+function smooth(x: number): number {
+  return x * x * (3 - 2 * x);
+}
+
+/**
+ * interpolate between 4 values: (x=0,y=a), (x=bt,y=b), (x=ct,y=c), (x=1,y=d)
+ */
+function lerp4(a: number, b: number, c: number, d: number, bt: number, ct: number, t: number): number {
+  const ab = lerp(a, b, t / bt);
+  const bc = lerp(b, c, (t - bt) / (ct - bt));
+  const cd = lerp(c, d, (t - ct) / (1 - ct));
+  return lerp(
+    ab,
+    lerp(bc, cd, Math.max(0, Math.sign(t - ct))),
+    Math.max(0, Math.sign(t - bt)));
+}
+
 function perlin(x: number, y: number, z: number): number {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
@@ -95,25 +112,29 @@ function kernelFunction(this: IKernelFunctionThis, args: [number, number, number
   const type = types[i];
 
   const factor =
-    (factors[type][6] * (ids[i] / 255)) +
-    (factors[type][7] * (Math.sin(time * factors[type][8] + ids[i] * factors[type][9]) + 1) / 2);
-
-  // noise version
-  // const factor =
-  //   (factors[type][6] * (ids[i] / 255)) +
-  //   (factors[type][7] * (perlin(
-  //     factors[type][8] * x,
-  //     factors[type][9] * y,
-  //     factors[type][10] * time) + 1) / 2) + 
-  //   (factors[type][11] * (perlin(
-  //     factors[type][12] * x,
-  //     factors[type][13] * y,
-  //     factors[type][14] * time) + 1) / 2);
-
+    (factors[type][14] * (Math.sin(((time * factors[type][15]) % (Math.PI * 2)) + ids[i] * factors[type][16]) + 1) / 2) +
+    (factors[type][17] * (Math.sin(((time * factors[type][18]) % (Math.PI * 2)) + ids[i] * factors[type][19]) + 1) / 2);
+  const mid1x = factors[type][12];
+  const mid2x = factors[type][13];
   this.color(
-    lerp(factors[type][0], factors[type][3], factor),
-    lerp(factors[type][1], factors[type][4], factor),
-    lerp(factors[type][2], factors[type][5], factor),
+    lerp4(
+      factors[type][0],   // min r
+      factors[type][1],  // mid1 r
+      factors[type][2],  // mid2 r
+      factors[type][3],   // max r
+      mid1x, mid2x, factor),
+    lerp4(
+      factors[type][4],   // min g
+      factors[type][5],  // mid1 g
+      factors[type][6],  // mid2 g
+      factors[type][7],   // max g
+      mid1x, mid2x, factor),
+    lerp4(
+      factors[type][8],   // min b
+      factors[type][9],  // mid1 b
+      factors[type][10],  // mid2 b
+      factors[type][11],   // max b
+      mid1x, mid2x, factor),
     1
   );
 }
@@ -122,6 +143,7 @@ export default function getShaderKernel() {
   return gpu.createKernel<typeof kernelFunction>(kernelFunction)
     .setFunctions([
       lerp,
+      lerp4,
       // f3x2m1, rand1u1, rand3u1, rand3vec3, dot3, perlinCorner, perlin,
     ]).setGraphical(true);
 }

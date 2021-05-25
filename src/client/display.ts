@@ -6,31 +6,41 @@ import MatrixClient from "./client";
 
 export type BlockShaderFactorMap = {
   min: Color,
+  mid1?: Color,
+  mid2?: Color,
   max: Color,
-  randFactor?: number,
-  noise1Factor?: number, noise1ScaleX?: number, noise1ScaleY?: number, noise1ScaleTime?: number,
-  noise2Factor?: number, noise2ScaleX?: number, noise2ScaleY?: number, noise2ScaleTime?: number,
-  timeFactor?: number, timeScale?: number, timeOffsetFactor?: number,
+  mid1x?: number,
+  mid2x?: number,
+  timeFactor1?: number, timeScale1?: number, timeOffsetFactor1?: number,
+  timeFactor2?: number, timeScale2?: number, timeOffsetFactor2?: number,
 }
 
 export type BlockShaderFactorList = [
-  number, number, number,
-  number, number, number,
-  number,
-  // number, number, number, number,
-  // number, number, number, number,
-  number, number, number
+  number, number, number, number, // 0=min r, 1=mid1 r, 2=mid2 r, 3=max r
+  number, number, number, number, // 4=min g, 5=mid1 g, 6=mid2 g, 7=max g
+  number, number, number, number, // 8=min b, 9=mid1 b, 10=mid2 b, 11=max b
+  number, number, // 12=mid1x, 13=mid2x
+  number, number, number, // 14=time1 factor, 15=time1 scale, 16=time1 offset factor
+  number, number, number, // 17=time2 factor, 18=time2 scale, 19=time2 offset factor
 ];
 
+const shaderArgsToFactorList = (args: BlockShaderFactorMap): BlockShaderFactorList => {
+  return [
+    args.min.r, (args.mid1?.r ?? args.min.r), (args.mid2?.r ?? args.max.r), args.max.r,
+    args.min.g, (args.mid1?.g ?? args.min.g), (args.mid2?.g ?? args.max.g), args.max.g,
+    args.min.b, (args.mid1?.b ?? args.min.b), (args.mid2?.b ?? args.max.b), args.max.b,
+    args.mid1x ?? 0.001,
+    args.mid2x ?? 0.999,
+    args.timeFactor1 ?? 0, args.timeScale1 ?? 0, args.timeOffsetFactor1 ?? 1,
+    args.timeFactor2 ?? 0, args.timeScale2 ?? 0, args.timeOffsetFactor2 ?? 1,
+  ];
+};
 
-const shader_missing: BlockShaderFactorList = [
-  1, 0, 1,
-  1, 0, 1,
-  0,
-  // 0,0,0,0,
-  // 0,0,0,0,
-  0, 0, 0
-];
+const shader_missing: BlockShaderFactorList = shaderArgsToFactorList({
+  min: Color.fromHex("#f0f"),
+  max: Color.fromHex("#f0f"),
+});
+
 export default class GridDisplay {
   public readonly canvas: HTMLCanvasElement = document.createElement("canvas");
 
@@ -104,11 +114,6 @@ export default class GridDisplay {
     });
 
     this.shaderKernel = getShaderKernel().setOutput([CHUNK_SIZE, CHUNK_SIZE]);
-
-    // screen follows mouse
-    // document.addEventListener("mousemove", (e) => {
-    //   this.setViewOrigin(new NPoint(e.offsetX, e.offsetY).addp(this.dims.multiply1(-0.5 * this.pixelsPerBlock)));
-    // });
   }
 
   public setViewOrigin(pt: NPoint): void {
@@ -124,14 +129,7 @@ export default class GridDisplay {
   public registerBlockShader(blockName: string, args: BlockShaderFactorMap): BlockShaderFactorList | null {
     const id = this.client.getBlockIdFromName(blockName) ?? 0;
 
-    const argList: BlockShaderFactorList = [
-      args.min.r, args.min.g, args.min.b,
-      args.max.r, args.max.g, args.max.b,
-      args.randFactor ?? 1,
-      // args.noise1Factor ?? 0, args.noise1ScaleX ?? 0.1, args.noise1ScaleY ?? 0.1, args.noise1ScaleTime ?? 0,
-      // args.noise2Factor ?? 0, args.noise2ScaleX ?? 0.1, args.noise2ScaleY ?? 0.1, args.noise2ScaleTime ?? 0,
-      args.timeFactor ?? 0, args.timeScale ?? 1, args.timeOffsetFactor ?? 0
-    ];
+    const argList: BlockShaderFactorList = shaderArgsToFactorList(args);
     this.blockShaders[id] = argList;
     return argList;
   }
@@ -218,7 +216,7 @@ export default class GridDisplay {
       throw "can't render view when visiblemin/max are null!";
     }
     this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
-    
+
     const limitedTimeMillis = Date.now() & 0xffffffffffff;
 
     for (let x = this.visibleMin.x; x <= this.visibleMax.x; x++) {
