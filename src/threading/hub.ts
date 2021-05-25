@@ -28,7 +28,7 @@ parts[1] = client;
 client.sendBlockNames(standardBlockTypes.map((t) => t.name));
 
 const mainDisplay = client.createDisplay();
-for(const [name, shader] of standardBlockShaders){
+for (const [name, shader] of standardBlockShaders) {
   mainDisplay.registerBlockShader(name, shader);
 }
 
@@ -44,13 +44,17 @@ container.appendChild(mainDisplay.canvas);
 
 mainDisplay.startDrawLoop();
 server.performGlobalTick();
-window.setInterval(() => server.performGlobalTick(), ~~(1000/30));
+window.setInterval(() => server.performGlobalTick(), ~~(1000 / 30));
 // window.setTimeout(() => server.performGlobalTick(), 500);
 
 let leftKeyDown = false;
 let rightKeyDown = false;
 let upKeyDown = false;
 let downKeyDown = false;
+let shiftKeyDown = false;
+
+let panSpeed = -10;
+
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowLeft":
@@ -64,6 +68,9 @@ document.addEventListener("keydown", (e) => {
       break;
     case "ArrowDown":
       downKeyDown = true;
+      break;
+    case "Shift":
+      shiftKeyDown = true;
       break;
   }
 });
@@ -82,11 +89,18 @@ document.addEventListener("keyup", (e) => {
     case "ArrowDown":
       downKeyDown = false;
       break;
+    case "Shift":
+      shiftKeyDown = false;
+      break;
   }
 });
 
-const panSpeed = -30;
 window.setInterval(() => {
+  if(shiftKeyDown){
+    panSpeed = -100;
+  }else{
+    panSpeed = -10;
+  }
   if (leftKeyDown) {
     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
   }
@@ -99,4 +113,14 @@ window.setInterval(() => {
   if (downKeyDown) {
     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
   }
+  // console.log(mainDisplay.getViewOrigin());
 }, (1000 / 30));
+
+//height: 171 blocks
+// ~75 blocks y=~19200 = 256 | 300
+// ~40 blocks y=~9980 = 249.5 | 155
+// ~23 blocks y=~4880 = 212.1 | 76.25
+// 0 blocks y=~ 0
+// ~-19 blocks y=~ -3930 = 206
+// ~-43 blocks y=~ -10580 = 246
+// ~-78 blocks y=~ -19310 = 247

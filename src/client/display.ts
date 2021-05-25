@@ -56,11 +56,12 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 8;
+  private pixelsPerBlock = 4;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
   private visibleMax: NPoint | null = null;
+  private visibleMaxFloat: NPoint | null = null;
 
   private readonly resizeCallbacks: Array<(e: ResizeObserverEntry) => void> = [];
   private resizeFinishTimer: number | undefined = undefined;
@@ -131,6 +132,7 @@ export default class GridDisplay {
 
     const argList: BlockShaderFactorList = shaderArgsToFactorList(args);
     this.blockShaders[id] = argList;
+    console.log(this.blockShaders);
     return argList;
   }
 
@@ -145,9 +147,10 @@ export default class GridDisplay {
       return;
     }
     const newMinX = Math.floor(-this.viewOriginCh.x) - this.visiblePadding;
-    const newMinY = Math.floor(this.viewOriginCh.y - this.dimsCh.y) + 1 - this.visiblePadding;
+    const newMinY = Math.floor(this.viewOriginCh.y - this.dimsCh.y) - this.visiblePadding;
     const newMaxX = Math.floor(this.dimsCh.x - this.viewOriginCh.x) + this.visiblePadding;
-    const newMaxY = Math.floor(this.viewOriginCh.y) + 1 + this.visiblePadding;
+    const newMaxY = Math.floor(this.viewOriginCh.y) + this.visiblePadding;
+    
     if (this.visibleMin === null || this.visibleMax === null) {
       this.visibleMin = new NPoint(newMinX, newMinY);
       this.visibleMax = new NPoint(newMaxX, newMaxY);
@@ -231,11 +234,24 @@ export default class GridDisplay {
           chunkData.types,
           chunkData.ids
         );
+        const drawY = (this.visibleMax.y - this.visibleMin.y - 1) - ((y + 1) * CHUNK_SIZE) + (this.viewOrigin.y / this.pixelsPerBlock);
         this.ctx.drawImage(
           this.shaderKernel.canvas,
           Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
-          Math.floor(this.visibleMax.y - y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock)
+          Math.floor(drawY)
         );
+        // this.ctx.beginPath();
+        // this.ctx.moveTo(
+        //   ~~(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
+        //   ~~(drawY + CHUNK_SIZE)
+        // );
+        // this.ctx.lineTo(
+        //   ~~(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock) + CHUNK_SIZE,
+        //   ~~(- y * CHUNK_SIZE + this.viewOrigin.y / this.pixelsPerBlock) + CHUNK_SIZE
+        // );
+        // this.ctx.lineWidth = 1;
+        // this.ctx.strokeStyle = "black";
+        // this.ctx.stroke();
       }
     }
 

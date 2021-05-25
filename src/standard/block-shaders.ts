@@ -14,6 +14,24 @@ standardBlockShaders.set("gravel", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("grass", {
+  min: Color.fromHex("#57cf02"),
+  max: Color.fromHex("#4eeb10"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("dirt", {
+  min: Color.fromHex("#75450d"),
+  max: Color.fromHex("#824f14"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("sand", {
+  min: Color.fromHex("#f0d422"),
+  max: Color.fromHex("#ffe645"),
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("stone", {
   min: Color.fromHex("#787878"),
   max: Color.fromHex("#8c8c8c"),

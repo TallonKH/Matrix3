@@ -21,6 +21,7 @@
     "webpack-cli": "^4.6.0"
   },
   "dependencies": {
+    "fast-simplex-noise": "^4.0.0",
     "gpu.js": "^2.11.3"
   }
 }
