@@ -49,23 +49,30 @@ export class CheckerGen extends WorldGenerator {
         const y = ay + by;
         const i = bx + (by << CHUNK_BITSHIFT);
 
-        const cave = this.noise2(x * 0.001, y * 0.002) * 0.95 + this.noise2(x * 0.01, y * 0.01) * 0.05;
+        const cave = ((this.noise2(x * 0.001, y * 0.002) * 0.95 + this.noise2(x * 0.01, y * 0.01) * 0.05) + 1) / 2;
+        const gravelSplotch = (this.noise2(x * 0.01, y * 0.01) + 1) / 2;
 
         let block;
+        // water level
         if (y > height) {
           block = y > 0 ? this.matAir : this.matWater;
         } else {
-          if ((height > 5 || y < height - 6) && cave > 0.5 && cave < 0.55) {
+          // caves
+          if ((height > 5 || y < height - 6) && (cave > 0.5 && cave < 0.55)) {
             block = this.matAir;
           } else {
+            // surface materials | ground materials
             if (y > height - 5) {
+              // near sea level | above sea level
               if (height < 6) {
+                // beaches | ocean floor
                 block = height < -4 ? this.matGravel : this.matSand;
               } else {
+                // grass | dirt
                 block = y > height - 1 ? this.matGrass : this.matDirt;
               }
             } else {
-              block = this.matStone;
+              block = gravelSplotch > 0.9 ? this.matGravel : this.matStone;
             }
           }
         }
