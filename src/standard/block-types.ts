@@ -1,8 +1,8 @@
 import { Color } from "../library";
-import { updateCascade, updateCrumble, updateFlow } from "./block-behaviors";
+import { updateCascade, updateCrumble, updateFall, updateFlow } from "./block-behaviors";
 import BlockType, { densityConstant, updateStatic } from "../simulation/matrix-blocktype";
 
-export const standardBlockTypes : Array<BlockType> = [];
+export const standardBlockTypes: Array<BlockType> = [];
 
 standardBlockTypes.push(new BlockType({
   name: "air",
@@ -37,9 +37,8 @@ standardBlockTypes.push(new BlockType({
   name: "grass",
   color: Color.fromHex("#4eeb10"),
   densityFunc: densityConstant(200),
-  tickBehaviorGen: () => updateStatic,
+  tickBehaviorGen: () => updateFall(updateStatic),
 }));
-
 
 standardBlockTypes.push(new BlockType({
   name: "stone",
