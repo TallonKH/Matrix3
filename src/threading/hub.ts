@@ -206,8 +206,8 @@ mainDisplay.canvas.addEventListener("mousemove", (e) => {
   }
 });
 
-const toolbarContainer = document.getElementById("toolbar");
-if (toolbarContainer === null) {
+const blocktypeContainer = document.getElementById("block-type-list");
+if (blocktypeContainer === null) {
   throw "no container";
 }
 
@@ -244,5 +244,9 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
     e.preventDefault();
     return false;
   };
-  toolbarContainer.appendChild(button);
+}
+
+buttons.sort((a,b) => a.innerHTML.localeCompare(b.innerHTML));
+for(const button of buttons){
+  blocktypeContainer.appendChild(button);
 }
