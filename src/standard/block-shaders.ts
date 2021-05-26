@@ -66,6 +66,12 @@ standardBlockShaders.set("Steam", {
   timeScale1: 0.01,
 });
 
+standardBlockShaders.set("Glass", {
+  min: Color.fromHex("#e9f3f5"),
+  max: Color.fromHex("#f5fdff"),
+  timeFactor1: 1,
+});
+
 
 standardBlockShaders.set("Lava", {
   min: Color.fromHex("#e11010"),
