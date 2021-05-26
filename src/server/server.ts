@@ -1,5 +1,5 @@
 import { NPoint } from "../lib/NLib/npoint";
-import WorldHandler, { PartialChunkData } from "../world-handler";
+import WorldHandler from "../world-handler";
 import World from "../simulation/matrix-world";
 import WorldGenerator from "../simulation/matrix-worldgen";
 import BlockType from "../simulation/matrix-blocktype";
@@ -12,7 +12,7 @@ export default class MatrixServer extends WorldHandler {
   public handleReceivedChunkData;
 
   constructor(
-    handleReceivedChunkData: (coord: NPoint, data: PartialChunkData) => void,
+    handleReceivedChunkData: (coord: NPoint, data: Uint16Array) => void,
     blockTypes: Array<BlockType>,
     worldGenGen: (world: World) => WorldGenerator,
   ) {

@@ -181,11 +181,11 @@ export default class World {
     if (this.loadedChunks.size === 0) {
       return;
     }
-
+    
     // make scrambled list of pending chunks
     const chunksScrambled = Array.from(iterFilter(this.loadedChunks.values(), (c) => c.pendingTick));
     shuffleArray(this.getRandomFloatBound, chunksScrambled);
-
+    
     // reset nexts
     for (const chunk of chunksScrambled) {
       chunk.resetNexts();
@@ -201,7 +201,7 @@ export default class World {
 
     // perform updates
     for (const chunk of chunksScrambled) {
-      shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
+      // shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
@@ -216,10 +216,11 @@ export default class World {
 
     // forward changes to server/handler
     for (const chunk of chunksScrambled) {
-      this.handler.sendChunkData(chunk.coord, {
-        types: chunk.getBlockTypes(),
-        ids: chunk.getBlockIds(),
-      });
+      // this.handler.sendChunkData(chunk.coord, {
+      //   types: chunk.getBlockTypes(),
+      //   ids: chunk.getBlockIds(),
+      // });
+      this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
     }
 
     // apply/flush the pendingPending buffer
@@ -306,17 +307,16 @@ export default class World {
 
     // randomize ids
     let rand = mixRands(x, y);
-    const ids = newChunk.getBlockIds();
     for (let i = 0; i < CHUNK_SIZE2; i++) {
       rand = mixRands(rand, i);
-      ids[i] = rand & 0b11111111;
+      newChunk.setCurrentIdOfBlock(i, rand & 0b11111111);
     }
 
     // for (let i = 0; i < CHUNK_SIZE2; i++) {
     //   this.queueBlock(newChunk, i);
     // }
     this.loadedChunks.set(ch, newChunk);
-
+    
     // assign neighbors
     for (let i = 0; i < 8; i++) {
       const neighbor = this.getChunk(x + DIRECTIONS[i].x, y + DIRECTIONS[i].y);
@@ -327,11 +327,11 @@ export default class World {
     }
 
     // send updated data to server/clients
-    this.handler.sendChunkData(newChunk.coord, {
-      types: newChunk.getBlockTypes(),
-      ids: newChunk.getBlockIds(),
-    });
-
+    // this.handler.sendChunkData(newChunk.coord, {
+      //   types: newChunk.getBlockTypes(),
+      //   ids: newChunk.getBlockIds(),
+      // });
+      this.handler.sendChunkData(newChunk.coord, newChunk.getBlockData());
     return newChunk;
   }
 

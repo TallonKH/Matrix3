@@ -2,11 +2,22 @@ import { NPoint } from "../lib/NLib/npoint";
 import { NEIGHBOR_OFFSETS } from "../library";
 import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE2, CHUNK_SIZEm1 } from "../matrix-common";
 
-export type BlockData = {
-  // creationTime: number,
-  id: number,
-  type: number 
-};
+// export type BlockData = {
+//   // creationTime: number,
+//   id: number,
+//   type: number 
+// };
+/**
+ * 8 (>>0) type
+ * 8 (>>8) id
+ * 8 (>>16) temp
+ * 8 (>>24) custom data
+//  * 8 (>>32) sunlight
+//  * 8 (>>40) color r
+//  * 8 (>>48) color g
+//  * 8 (>>56) color b
+ */
+export type BlockData = number;
 
 export enum UpdateFlags {
   PENDING_TICK = 0,
@@ -39,12 +50,14 @@ export default class Chunk {
 
   // private readonly creationTimes: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // wraps around
   // private readonly creationTimesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
-  private readonly ids: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // ids are not unique; just random
-  private readonly idsNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
-  private readonly temps: Uint8Array = new Uint8Array(CHUNK_SIZE2); // ids are not unique; just random
-  private readonly tempsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
-  private readonly types: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
-  private readonly typesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  // private readonly ids: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // ids are not unique; just random
+  // private readonly idsNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  // private readonly temps: Uint8Array = new Uint8Array(CHUNK_SIZE2); // ids are not unique; just random
+  // private readonly tempsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+  // private readonly types: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  // private readonly typesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
+  private readonly blockData = new Uint16Array(CHUNK_SIZE2);
+  private readonly blockDataNext = new Uint16Array(CHUNK_SIZE2);
 
   public readonly coord: NPoint;
 
@@ -52,66 +65,89 @@ export default class Chunk {
     this.coord = new NPoint(x, y);
   }
 
-  public getBlockData(i: number): BlockData {
-    return {
-      // creationTime: this.creationTimes[i],
-      id: this.ids[i],
-      type: this.types[i],
-    };
+  public getBlockData(): Uint16Array {
+    return this.blockData;
+  }
+
+  public getDataOfBlock(i: number): BlockData {
+    return this.blockData[i];
+    // return thi
+    // return {
+    //   // creationTime: this.creationTimes[i],
+    //   id: this.ids[i],
+    //   type: this.types[i],
+    // };
   }
 
   public setNextBlockData(i: number, data: BlockData): void {
     // this.creationTimesNext[i] = data.creationTime;
-    this.idsNext[i] = data.id;
-    this.typesNext[i] = data.type;
+    // this.idsNext[i] = data.id;
+    // this.typesNext[i] = data.type;
+    this.blockDataNext[i] = data;
   }
 
   public applyNexts(): void {
     // this.creationTimes.set(this.creationTimesNext);
-    this.ids.set(this.idsNext);
-    this.types.set(this.typesNext);
+    // this.ids.set(this.idsNext);
+    // this.types.set(this.typesNext);
+    this.blockData.set(this.blockDataNext);
   }
-
+  
   public resetNexts(): void {
     this.flags.fill(0);
     // this.creationTimesNext.set(this.creationTimes);
-    this.idsNext.set(this.ids);
-    this.typesNext.set(this.types);
+    // this.idsNext.set(this.ids);
+    // this.typesNext.set(this.types);
+    this.blockDataNext.set(this.blockData);
   }
 
   public getIdOfBlock(index: number): number {
-    return this.ids[index];
+    // return this.ids[index];
+    return (this.blockData[index] & 0xff00) >> 8;
   }
 
   public setNextBlockId(index: number, id: number): void {
-    this.idsNext[index] = id;
+    // this.idsNext[index] = id;
+    this.blockDataNext[index] = (this.blockData[index] & 0x00ff) | (id << 8);
   }
 
   public getTypeOfBlock(index: number): number {
-    return this.types[index];
+    // return this.types[index];
+    return this.blockData[index] & 0x00ff;
   }
 
-  /**
-   * Don't mess with this unless you know what you're doing.
-   */
-  public getBlockTypes(): Uint8ClampedArray {
-    return this.types;
+  public setNextTypeOfBlock(index: number, typeId: number): void {
+    // this.typesNext[index] = id;
+    this.blockDataNext[index] = (this.blockData[index] & 0xff00) | typeId;
   }
 
-  /**
-   * Don't mess with this unless you know what you're doing.
-   */
-  public getBlockIds(): Uint8ClampedArray {
-    return this.ids;
+  public setCurrentTypeOfBlock(index: number, typeId: number): void {
+    // this.typesNext[index] = id;
+    this.blockData[index] = (this.blockData[index] & 0xff00) | typeId;
   }
 
-  public getNextBlockTypes(): Uint8ClampedArray {
-    return this.typesNext;
+  public setCurrentIdOfBlock(index: number, id: number): void {
+    // this.typesNext[index] = id;
+    this.blockData[index] = (this.blockData[index] & 0x00ff) | (id << 8);
   }
 
-  public setNextTypeOfBlock(index: number, id: number): void {
-    this.typesNext[index] = id;
-  }
+  // /**
+  //  * Don't mess with this unless you know what you're doing.
+  //  */
+  // public getBlockTypes(): Uint8ClampedArray {
+  //   return this.types;
+  // }
+
+  // /**
+  //  * Don't mess with this unless you know what you're doing.
+  //  */
+  // public getBlockIds(): Uint8ClampedArray {
+  //   return this.ids;
+  // }
+
+  // public getNextBlockTypes(): Uint8ClampedArray {
+  //   return this.typesNext;
+  // }
 
   // public getCreationTimeOfBlock(index: number): number {
   //   return this.creationTimes[index];

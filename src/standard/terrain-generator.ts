@@ -27,6 +27,7 @@ export class CheckerGen extends WorldGenerator {
     this.matWater = this.world.getBlockTypeIndex("water") ?? 0;
     this.matGravel = this.world.getBlockTypeIndex("gravel") ?? 0;
     this.matSand = this.world.getBlockTypeIndex("sand") ?? 0;
+    
     return (
       this.matAir &
       this.matGrass &
@@ -41,7 +42,7 @@ export class CheckerGen extends WorldGenerator {
   public generate(world: World, cx: number, cy: number, chunk: Chunk): void {
     const ax = cx << CHUNK_BITSHIFT;
     const ay = cy << CHUNK_BITSHIFT;
-    const types = chunk.getBlockTypes();
+
     for (let bx = 0; bx < CHUNK_SIZE; bx++) {
       const x = ax + bx;
       const height = this.noise2(x * 0.005, 0) * 20 + this.noise2(x * 0.001, 10) * 100;
@@ -76,7 +77,7 @@ export class CheckerGen extends WorldGenerator {
             }
           }
         }
-        types[i] = block;
+        chunk.setCurrentTypeOfBlock(i, block);
       }
     }
   }

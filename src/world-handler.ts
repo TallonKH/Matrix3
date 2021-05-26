@@ -1,14 +1,15 @@
 import { NPoint, PointStr } from "./lib/NLib/npoint";
 
-export type PartialChunkData = {
-  types?: Uint8ClampedArray,
-  ids?: Uint8ClampedArray,
-}
+// export type PartialChunkData = {
+//   types?: Uint8ClampedArray,
+//   ids?: Uint8ClampedArray,
+// }
+
 
 export default abstract class WorldHandler {
   private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
 
-  public sendChunkData(coord: NPoint, data: PartialChunkData): void {
+  public sendChunkData(coord: NPoint, data: Uint16Array): void {
     this.handleReceivedChunkData(coord, data);
   }
 
@@ -48,5 +49,5 @@ export default abstract class WorldHandler {
 
   protected abstract forwardChunkUnloadRequests(toUnloads: Array<[number, number]>): void;
 
-  public abstract handleReceivedChunkData(coord: NPoint, data: PartialChunkData): void;
+  public abstract handleReceivedChunkData(coord: NPoint, data: Uint16Array): void;
 }

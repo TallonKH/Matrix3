@@ -1,11 +1,12 @@
 import GridDisplay from "./display";
 import { NPoint, PointStr } from "../lib/NLib/npoint";
-import WorldHandler, { PartialChunkData } from "../world-handler";
+import WorldHandler from "../world-handler";
 
 type ChunkData = {
   coord: NPoint,
-  types: Uint8ClampedArray,
-  ids: Uint8ClampedArray
+  // types: Uint8ClampedArray,
+  // ids: Uint8ClampedArray
+  data: Uint16Array,
 }
 
 export default class MatrixClient extends WorldHandler {
@@ -33,22 +34,21 @@ export default class MatrixClient extends WorldHandler {
   private readonly chunkData: Map<PointStr, ChunkData> = new Map();
   private blockTypeNameIdMap: Map<string, number>;
 
-  public handleReceivedChunkData(coord: NPoint, data: PartialChunkData): void {
+  public handleReceivedChunkData(coord: NPoint, data: Uint16Array): void {
     const hash = coord.toHash();
-    const existing = this.chunkData.get(hash);
-    if (existing === undefined) {
-      if (data.types === undefined || data.ids === undefined) {
-        return;
-      }
-      this.chunkData.set(hash, {
-        coord: coord,
-        ids: data.ids,
-        types: data.types,
-      });
-    } else {
-      existing.ids = data.ids ?? existing.ids;
-      existing.types = data.types ?? existing.types;
-    }
+    // const existing = this.chunkData.get(hash);
+    // if (existing === undefined) {
+    this.chunkData.set(hash, {
+      coord: coord,
+      // ids: data.ids,
+      // types: data.types,
+      data: data,
+    });
+    // } else {
+
+    // existing.ids = data.ids ?? existing.ids;
+    // existing.types = data.types ?? existing.types;
+    // }
   }
 
   public sendBlockNames(blockTypeNames: Array<string>): void {

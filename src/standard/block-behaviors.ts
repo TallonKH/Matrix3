@@ -26,12 +26,12 @@ export const updateDisplaceN = (offsets: Array<NPoint>, fallback: TickBehavior):
     for (let j = 0; j < targets.length - 1; j++) {
       const dest = targets[j];
       const src = targets[j + 1];
-      world.setBlockData(dest[0], dest[1], src[0].getBlockData(src[1]));
+      world.setBlockData(dest[0], dest[1], src[0].getDataOfBlock(src[1]));
     }
 
     // put the main block into the final position
     const last = targets[targets.length - 1];
-    world.setBlockData(last[0], last[1], chunk.getBlockData(i));
+    world.setBlockData(last[0], last[1], chunk.getDataOfBlock(i));
   };
 
 // (offset, fallback) => updateDisplaceN([offset], fallback);
@@ -46,8 +46,8 @@ export const updateDisplace1 = (offset: NPoint, fallback: TickBehavior): TickBeh
       return;
     }
 
-    world.setBlockData(targetCI[0], targetCI[1], chunk.getBlockData(i));
-    world.setBlockData(chunk, i, targetCI[0].getBlockData(targetCI[1]));
+    world.setBlockData(targetCI[0], targetCI[1], chunk.getDataOfBlock(i));
+    world.setBlockData(chunk, i, targetCI[0].getDataOfBlock(targetCI[1]));
   };
 
 // (offset1, offset2, fallback) => updateDisplaceN([offset1, offset2], fallback);
@@ -72,9 +72,9 @@ export const updateDisplace2 = (offset1: NPoint, offset2: NPoint, fallback: Tick
       return;
     }
 
-    world.setBlockData(target2CI[0], target2CI[1], chunk.getBlockData(i));
-    world.setBlockData(target1CI[0], target1CI[1], target2CI[0].getBlockData(target2CI[1]));
-    world.setBlockData(chunk, i, target1CI[0].getBlockData(target1CI[1]));
+    world.setBlockData(target2CI[0], target2CI[1], chunk.getDataOfBlock(i));
+    world.setBlockData(target1CI[0], target1CI[1], target2CI[0].getDataOfBlock(target2CI[1]));
+    world.setBlockData(chunk, i, target1CI[0].getDataOfBlock(target1CI[1]));
   };
 
 export const updateFall = (fallback: TickBehavior): TickBehavior =>

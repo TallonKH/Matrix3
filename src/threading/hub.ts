@@ -160,7 +160,7 @@ document.addEventListener("mousemove", (e) => {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     if (pos !== null) {
       pixelCircle(pos.x, pos.y, drawRadius,
-        (x, y) => server.forwardSetBlockRequests([[x, y, 1]])
+        (x, y) => server.forwardSetBlockRequests([[x, y, Math.random() > 0.5 ? 4 : 1]])
       );
     }
   }

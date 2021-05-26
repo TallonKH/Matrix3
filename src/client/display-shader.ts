@@ -103,17 +103,18 @@ function perlin(x: number, y: number, z: number): number {
   );
 }
 
-function kernelFunction(this: IKernelFunctionThis, args: [number, number, number, number, number], factors: BlockShaderFactorList[], types: Uint16Array, ids: Uint8Array): void {
+function kernelFunction(this: IKernelFunctionThis, args: [number, number, number, number, number], factors: BlockShaderFactorList[], blockData: Uint16Array): void {
   // const x = this.thread.x + (args[2] * args[0]);
   // const y = this.thread.y + (args[3] * args[0]);
   const i = this.thread.x + (this.thread.y << args[1]);
   const time = args[4];
 
-  const type = types[i];
+  const type = blockData[i] & 0xff;
+  const id = (blockData[i] & 0xff00) >> 8;
 
   const factor =
-    (factors[type][14] * (Math.sin(((time * factors[type][15]) % (Math.PI * 2)) + ids[i] * factors[type][16]) + 1) / 2) +
-    (factors[type][17] * (Math.sin(((time * factors[type][18]) % (Math.PI * 2)) + ids[i] * factors[type][19]) + 1) / 2);
+    (factors[type][14] * (Math.sin(((time * factors[type][15]) % (Math.PI * 2)) + id * factors[type][16]) + 1) / 2) +
+    (factors[type][17] * (Math.sin(((time * factors[type][18]) % (Math.PI * 2)) + id * factors[type][19]) + 1) / 2);
   const mid1x = factors[type][12];
   const mid2x = factors[type][13];
   this.color(

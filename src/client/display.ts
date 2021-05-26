@@ -240,8 +240,9 @@ export default class GridDisplay {
         this.shaderKernel(
           [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, limitedTimeMillis],
           this.blockShaders,
-          chunkData.types,
-          chunkData.ids
+          chunkData.data,
+          // chunkData.types,
+          // chunkData.ids
         );
         const drawX = (x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock);
         const drawY = (this.visibleMax.y - this.visibleMin.y - 1) - ((y + 1) * CHUNK_SIZE) + (this.viewOrigin.y / this.pixelsPerBlock);
