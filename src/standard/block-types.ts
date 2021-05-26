@@ -110,12 +110,35 @@ standardBlockTypes.push(new BlockType({
   name: "Water",
   color: Color.fromHex("#408cff"),
   densityFunc: densityConstant(100),
-  tickBehaviorGen: () => updateFlow(0.8, updateStatic),
+  tickBehaviorGen: (world: World): TickBehavior => {
+    const lavaMat = world.getBlockTypeIndex("Lava") ?? 0;
+    const steamMat = world.getBlockTypeIndex("Steam") ?? 0;
+
+    return (world, chunk, i) => {
+      // if touching lava, become steam
+      for(const offset of [[0,-1], [0,1], [-1,0], [1,0]]){
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
+          world.tryMutateTypeOfBlock(chunk, i, steamMat);
+          return;
+        }
+      }
+
+      updateFlow(0.8, updateStatic)(world, chunk, i);
+    };
+  },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Steam",
+  color: Color.fromHex("#e3e3e3"),
+  densityFunc: densityConstant(5),
+  tickBehaviorGen: () => updateFlow(0, updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Lava",
   color: Color.fromHex("#ff3500"),
   densityFunc: densityConstant(150),
-  tickBehaviorGen: () => updateFlow(0.8, updateStatic),
+  tickBehaviorGen: () => updateFlow(0.02, updateStatic),
 }));

@@ -201,7 +201,7 @@ export default class World {
 
     // perform updates
     for (const chunk of chunksScrambled) {
-      // shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
+      shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);

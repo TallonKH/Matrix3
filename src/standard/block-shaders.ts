@@ -54,19 +54,18 @@ standardBlockShaders.set("Stone", {
 
 standardBlockShaders.set("Water", {
   min: Color.fromHex("#3b78f7"),
-  // mid2: Color.fromHex("#408cff"),
-  // max: Color.fromHex("#86afff"),
   max: Color.fromHex("#408cff"),
   timeFactor1: 1,
   timeScale1: 0.001,
-  // mid2x: 0.95,
-  // timeFactor1: 0.7,
-  // timeOffsetFactor1: 0.05,
-  // timeScale1: 0.001,
-  // timeFactor2: 0.3,
-  // timeOffsetFactor2: 1,
-  // timeScale2: 0.0001,
 });
+
+standardBlockShaders.set("Steam", {
+  min: Color.fromHex("#d0d0d0"),
+  max: Color.fromHex("#e8e8e8"),
+  timeFactor1: 1,
+  timeScale1: 0.01,
+});
+
 
 standardBlockShaders.set("Lava", {
   min: Color.fromHex("#e11010"),
