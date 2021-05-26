@@ -22,16 +22,56 @@ standardBlockTypes.push(new BlockType({
 
 standardBlockTypes.push(new BlockType({
   name: "dirt",
-  color: Color.fromHex("#75450d"),
+  color: Color.fromHex("#7E572E"),
   densityFunc: densityConstant(200),
-  tickBehaviorGen: () => updateCascade(updateStatic),
+  tickBehaviorGen: (world: World): TickBehavior => {
+    const waterMat = world.getBlockTypeIndex("water") ?? 0;
+    const mudMat = world.getBlockTypeIndex("mud") ?? 0;
+
+    return (world, chunk, i) => {
+      // if water above, become wet sand
+      const above = chunk.getNearIndexI(i, 0, 1);
+      if (above !== null && above[0].getTypeOfBlock(above[1]) === waterMat) {
+        world.tryMutateTypeOfBlock(chunk, i, mudMat);
+      } else {
+        updateCascade(updateStatic)(world, chunk, i);
+      }
+    };
+  },
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "sand",
   color: Color.fromHex("#f0d422"),
   densityFunc: densityConstant(200),
-  tickBehaviorGen: () => updateCascade(updateStatic),
+  tickBehaviorGen: (world: World): TickBehavior => {
+    const waterMat = world.getBlockTypeIndex("water") ?? 0;
+    const wetSandMat = world.getBlockTypeIndex("wet_sand") ?? 0;
+
+    return (world, chunk, i) => {
+      // if water above, become wet sand
+      const above = chunk.getNearIndexI(i, 0, 1);
+      if (above !== null && above[0].getTypeOfBlock(above[1]) === waterMat) {
+        world.tryMutateTypeOfBlock(chunk, i, wetSandMat);
+      } else {
+        updateCascade(updateStatic)(world, chunk, i);
+      }
+    };
+  },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "wet_sand",
+  color: Color.fromHex("#978157"),
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: () => updateFall(updateStatic),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "mud",
+  color: Color.fromHex("#472f18"),
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -75,7 +115,7 @@ standardBlockTypes.push(new BlockType({
 
 standardBlockTypes.push(new BlockType({
   name: "lava",
-  color: Color.fromHex("#408cff"),
+  color: Color.fromHex("#ff3500"),
   densityFunc: densityConstant(100),
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),
 }));

@@ -149,10 +149,10 @@ window.setInterval(() => {
 }, (1000 / 30));
 
 let mouseDown = false;
-document.addEventListener("mousedown", (e) => {
+document.addEventListener("mousedown", () => {
   mouseDown = true;
 });
-document.addEventListener("mouseup", (e) => {
+document.addEventListener("mouseup", () => {
   mouseDown = false;
 });
 document.addEventListener("mousemove", (e) => {
@@ -160,7 +160,7 @@ document.addEventListener("mousemove", (e) => {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     if (pos !== null) {
       pixelCircle(pos.x, pos.y, drawRadius,
-        (x, y) => server.forwardSetBlockRequests([[x, y, Math.random() > 0.5 ? 4 : 1]])
+        (x, y) => server.forwardSetBlockRequests([[x, y, Math.random() > 0.5 ? 3 : 1]])
       );
     }
   }

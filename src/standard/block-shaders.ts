@@ -21,14 +21,28 @@ standardBlockShaders.set("grass", {
 });
 
 standardBlockShaders.set("dirt", {
-  min: Color.fromHex("#75450d"),
-  max: Color.fromHex("#824f14"),
+  min: Color.fromHex("#6D4F30"),
+  max: Color.fromHex("#836242"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("mud", {
+  min: Color.fromHex("#472f18"),
+  max: Color.fromHex("#5c3d1f"),
   timeFactor1: 1,
 });
 
 standardBlockShaders.set("sand", {
   min: Color.fromHex("#f0d422"),
-  max: Color.fromHex("#ffe645"),
+  mid2: Color.fromHex("#ffe645"),
+  max: Color.fromHex("#fff0c0"),
+  mid2x: 0.995,
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("wet_sand", {
+  min: Color.fromHex("#978157"),
+  max: Color.fromHex("#A89560"),
   timeFactor1: 1,
 });
 
