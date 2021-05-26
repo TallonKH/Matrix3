@@ -1,6 +1,6 @@
 import { NPoint, PointStr } from "../lib/NLib/npoint";
 import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, shuffleArray } from "../library";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2 } from "../matrix-common";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1 } from "../matrix-common";
 import WorldHandler from "../world-handler";
 import BlockType from "./matrix-blocktype";
 import Chunk, { BlockData, UpdateFlags } from "./matrix-chunk";
@@ -39,6 +39,7 @@ export default class World {
   private rand = 1;
   private initialized = false;
   public readonly handler: WorldHandler;
+  private randomTicksPerTick = 64;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
     this.handler = handler;
@@ -181,18 +182,18 @@ export default class World {
     if (this.loadedChunks.size === 0) {
       return;
     }
-    
+
     // make scrambled list of pending chunks
-    const chunksScrambled = Array.from(iterFilter(this.loadedChunks.values(), (c) => c.pendingTick));
-    shuffleArray(this.getRandomFloatBound, chunksScrambled);
-    
+    const pendingChunks = Array.from(iterFilter(this.loadedChunks.values(), (c) => c.pendingTick));
+    shuffleArray(this.getRandomFloatBound, pendingChunks);
+
     // reset nexts
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       chunk.resetNexts();
     }
 
     // apply client changes
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       for (const [i, btype] of chunk.pendingClientChanges) {
         this.trySetTypeOfBlock(chunk, i, btype, true);
       }
@@ -200,7 +201,7 @@ export default class World {
     }
 
     // perform updates
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
@@ -209,13 +210,25 @@ export default class World {
       }
     }
 
+    // perform random ticks
+    const loadedChunks = Array.from(this.loadedChunks.values());
+    shuffleArray(this.getRandomFloatBound, loadedChunks);
+    for (const chunk of loadedChunks) {
+      for (let n = 0; n < this.randomTicksPerTick; n++) {
+        const i = ~~(this.getRandomFloat() * CHUNK_SIZE2m1);
+        if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
+          this.blockTypes[chunk.getTypeOfBlock(i)].doRandomTick(this, chunk, i);
+        }
+      }
+    }
+
     // apply nexts
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       chunk.applyNexts();
     }
 
     // forward changes to server/handler
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       // this.handler.sendChunkData(chunk.coord, {
       //   types: chunk.getBlockTypes(),
       //   ids: chunk.getBlockIds(),
@@ -224,7 +237,7 @@ export default class World {
     }
 
     // apply/flush the pendingPending buffer
-    for (const chunk of chunksScrambled) {
+    for (const chunk of pendingChunks) {
       chunk.blocksPendingTick = chunk.blocksPendingPendingTick;
       chunk.pendingTick = chunk.blocksPendingTick.length > 0;
       chunk.blocksPendingPendingTick = [];
@@ -316,7 +329,7 @@ export default class World {
     //   this.queueBlock(newChunk, i);
     // }
     this.loadedChunks.set(ch, newChunk);
-    
+
     // assign neighbors
     for (let i = 0; i < 8; i++) {
       const neighbor = this.getChunk(x + DIRECTIONS[i].x, y + DIRECTIONS[i].y);
@@ -328,10 +341,10 @@ export default class World {
 
     // send updated data to server/clients
     // this.handler.sendChunkData(newChunk.coord, {
-      //   types: newChunk.getBlockTypes(),
-      //   ids: newChunk.getBlockIds(),
-      // });
-      this.handler.sendChunkData(newChunk.coord, newChunk.getBlockData());
+    //   types: newChunk.getBlockTypes(),
+    //   ids: newChunk.getBlockIds(),
+    // });
+    this.handler.sendChunkData(newChunk.coord, newChunk.getBlockData());
     return newChunk;
   }
 

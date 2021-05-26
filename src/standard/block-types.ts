@@ -16,17 +16,17 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Gravel",
   color: Color.fromHex("#5a5452"),
-  densityFunc: densityConstant(200),
+  densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateCrumble(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Dirt",
   color: Color.fromHex("#7E572E"),
-  densityFunc: densityConstant(200),
-  tickBehaviorGen: (world: World): TickBehavior => {
-    const waterMat = world.getBlockTypeIndex("Water") ?? 0;
-    const mudMat = world.getBlockTypeIndex("Mud") ?? 0;
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World): TickBehavior => {
+    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
+    const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
 
     return (world, chunk, i) => {
       // if water above, become wet sand
@@ -43,10 +43,10 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Sand",
   color: Color.fromHex("#f0d422"),
-  densityFunc: densityConstant(200),
-  tickBehaviorGen: (world: World): TickBehavior => {
-    const waterMat = world.getBlockTypeIndex("Water") ?? 0;
-    const wetSandMat = world.getBlockTypeIndex("Wet Sand") ?? 0;
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World): TickBehavior => {
+    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
+    const wetSandMat = world_init.getBlockTypeIndex("Wet Sand") ?? 0;
 
     return (world, chunk, i) => {
       // if water above, become wet sand
@@ -63,24 +63,24 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Wet Sand",
   color: Color.fromHex("#978157"),
-  densityFunc: densityConstant(200),
+  densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Mud",
   color: Color.fromHex("#472f18"),
-  densityFunc: densityConstant(200),
+  densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Grass",
   color: Color.fromHex("#4eeb10"),
-  densityFunc: densityConstant(200),
-  tickBehaviorGen: (world: World): TickBehavior => {
-    const airMat = world.getBlockTypeIndex("Air") ?? 0;
-    const dirtMat = world.getBlockTypeIndex("Dirt") ?? 0;
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World): TickBehavior => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
     return (world, chunk, i) => {
       // if no dirt below, become dirt
@@ -116,7 +116,7 @@ standardBlockTypes.push(new BlockType({
 
     return (world, chunk, i) => {
       // if touching lava, become steam
-      for(const offset of [[0,-1], [0,1], [-1,0], [1,0]]){
+      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
           world.tryMutateTypeOfBlock(chunk, i, steamMat);
@@ -141,4 +141,35 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#ff3500"),
   densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateFlow(0.02, updateStatic),
+  randomTickBehaviorGen: (world_init: World) => {
+    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
+    const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
+    
+    return (world, chunk, i) => {
+      if (world.getRandomFloat() > 0.8) {
+        // if not surrounded by lava, make self stone
+        let allLava = true;
+        for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if (adj !== null && adj[0].getTypeOfBlock(adj[1]) !== lavaMat) {
+            allLava = false;
+            break;
+          }
+        }
+        if(!allLava){
+          world.tryMutateTypeOfBlock(chunk, i, stoneMat);
+        }
+      } else {
+        // if touching stone, make it lava
+        for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === stoneMat) {
+            if (world.getRandomFloat() > 0.7) {
+              world.tryMutateTypeOfBlock(adj[0], adj[1], lavaMat);
+            }
+          }
+        }
+      }
+    };
+  }
 }));

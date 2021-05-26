@@ -15,6 +15,7 @@ interface BlockTypeArgs {
   name: string,
   color: Color,
   tickBehaviorGen?: (world: World) => TickBehavior,
+  randomTickBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
 }
 
@@ -23,18 +24,24 @@ export default class BlockType {
   public readonly color: Color;
   public readonly tickBehaviorGen?: (world: World) => TickBehavior;
   private tickBehavior: TickBehavior;
+  public readonly randomTickBehaviorGen?: (world: World) => TickBehavior;
+  private randomTickBehavior: TickBehavior;
   private densityFunc: DensityFunc;
   private initialized = false;
 
-  constructor({ name, color, tickBehaviorGen, densityFunc }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, densityFunc }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.tickBehaviorGen = tickBehaviorGen;
     this.tickBehavior = updateStatic;
+    this.randomTickBehaviorGen = randomTickBehaviorGen;
+    this.randomTickBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
   }
 
   public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);
+  
+  public doRandomTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.randomTickBehavior(world, chunk, index);
 
   public getDensity: DensityFunc = (world: World, chunk: Chunk, index: number) => this.densityFunc(world, chunk, index);
 
@@ -46,6 +53,9 @@ export default class BlockType {
     this.initialized = true;
     if (this.tickBehaviorGen !== undefined) {
       this.tickBehavior = this.tickBehaviorGen(world);
+    }
+    if (this.randomTickBehaviorGen !== undefined) {
+      this.randomTickBehavior = this.randomTickBehaviorGen(world);
     }
   }
 }
