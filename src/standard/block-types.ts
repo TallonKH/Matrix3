@@ -49,7 +49,7 @@ standardBlockTypes.push(new BlockType({
     const glassMat = world_init.getBlockTypeIndex("Glass") ?? 0;
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
     const wetSandMat = world_init.getBlockTypeIndex("Wet Sand") ?? 0;
-    
+
     return (world, chunk, i) => {
       // if touching lava, become glass
       for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
@@ -171,9 +171,9 @@ standardBlockTypes.push(new BlockType({
       for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
-          if(world.getRandomFloat() > 0.7){
+          if (world.getRandomFloat() > 0.7) {
             world.tryMutateTypeOfBlock(adj[0], adj[1], stoneMat);
-          }else{
+          } else {
             world.tryMutateTypeOfBlock(chunk, i, steamMat);
             return;
           }
@@ -193,8 +193,33 @@ standardBlockTypes.push(new BlockType({
   randomTickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
     return (world, chunk, i) => {
-      if(world.getRandomFloat() > 0.99){
+      if (world.getRandomFloat() > 0.99) {
         world.tryMutateTypeOfBlock(chunk, i, waterMat);
+      }
+    };
+  }
+}));
+
+// TODO figure out why acid & lava can't penetrate upper/lower chunk borders
+standardBlockTypes.push(new BlockType({
+  name: "Acid",
+  color: Color.fromHex("#26d15f"),
+  densityFunc: densityConstant(120),
+  tickBehaviorGen: () => updateFlow(0.8, updateStatic),
+  acidResistance: 1,
+  randomTickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    return (world, chunk, i) => {
+      for (const offset of [[0, -1], [-1, 0], [1, 0]]) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        // try destroy adjacent block
+        if (adj !== null && world.getRandomFloat() > world.getBlockType(adj[0].getTypeOfBlock(adj[1])).acidResistance) {
+          world.trySetTypeOfBlock(adj[0], adj[1], airMat);
+          // try destroy self
+          if(world.getRandomFloat() > 0.7){
+            world.trySetTypeOfBlock(chunk, i, airMat);
+          }
+        }
       }
     };
   }
@@ -228,7 +253,7 @@ standardBlockTypes.push(new BlockType({
         // if touching stone, make it lava
         for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-          if(adj === null){
+          if (adj === null) {
             continue;
           }
           const adjMat = adj[0].getTypeOfBlock(adj[1]);

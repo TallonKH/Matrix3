@@ -48,8 +48,8 @@ export default class BlockType {
     this.heatedBehaviorGen = heatedBehaviorGen;
     this.heatedBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
-    this.acidResistance = acidResistance ?? 0.3;
-    this.blastResistance = blastResistance ?? 0.3;
+    this.acidResistance = acidResistance ?? 0.1;
+    this.blastResistance = blastResistance ?? 0.1;
   }
 
   public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);

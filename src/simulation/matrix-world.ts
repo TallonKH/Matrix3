@@ -200,16 +200,6 @@ export default class World {
       chunk.pendingClientChanges.length = 0;
     }
 
-    // perform updates
-    for (const chunk of pendingChunks) {
-      shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
-      for (const i of chunk.blocksPendingTick) {
-        if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
-          this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
-        }
-      }
-    }
-
     // perform random ticks
     const loadedChunks = Array.from(this.loadedChunks.values());
     shuffleArray(this.getRandomFloatBound, loadedChunks);
@@ -218,6 +208,16 @@ export default class World {
         const i = ~~(this.getRandomFloat() * CHUNK_SIZE2m1);
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeOfBlock(i)].doRandomTick(this, chunk, i);
+        }
+      }
+    }
+
+    // perform updates
+    for (const chunk of pendingChunks) {
+      shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
+      for (const i of chunk.blocksPendingTick) {
+        if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
+          this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
         }
       }
     }

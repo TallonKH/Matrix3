@@ -59,6 +59,13 @@ standardBlockShaders.set("Water", {
   timeScale1: 0.001,
 });
 
+standardBlockShaders.set("Acid", {
+  min: Color.fromHex("#26d15f"),
+  max: Color.fromHex("#3deb54"),
+  timeFactor1: 1,
+  timeScale1: 0.001,
+});
+
 standardBlockShaders.set("Steam", {
   min: Color.fromHex("#d0d0d0"),
   max: Color.fromHex("#e8e8e8"),
