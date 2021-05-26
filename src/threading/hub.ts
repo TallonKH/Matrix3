@@ -77,10 +77,10 @@ document.addEventListener("keydown", (e) => {
       shiftKeyDown = true;
       break;
     case "0":
-      drawRadius = 1;
+      drawRadius = 0;
       break;
     case "1":
-      drawRadius = 2;
+      drawRadius = 1;
       break;
     case "2":
       drawRadius = 3;
@@ -89,22 +89,22 @@ document.addEventListener("keydown", (e) => {
       drawRadius = 5;
       break;
     case "4":
-      drawRadius = 10;
+      drawRadius = 7;
       break;
     case "5":
-      drawRadius = 15;
+      drawRadius = 10;
       break;
     case "6":
-      drawRadius = 20;
+      drawRadius = 15;
       break;
     case "7":
-      drawRadius = 25;
+      drawRadius = 20;
       break;
     case "8":
-      drawRadius = 35;
+      drawRadius = 30;
       break;
     case "9":
-      drawRadius = 50;
+      drawRadius = 40;
       break;
   }
 });
@@ -181,14 +181,27 @@ mainDisplay.canvas.oncontextmenu = (e) => {
 mainDisplay.canvas.addEventListener("mousemove", (e) => {
   if (mouse1Down || mouse2Down) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
+    const drawMat = (mouse1Down && mouse2Down)
+      ? (Math.random() > 0.5 ? drawType1 : drawType2)
+      : (mouse1Down ? drawType1 : drawType2);
     if (pos !== null) {
-      pixelCircle(pos.x, pos.y, drawRadius,
-        (x, y) => server.forwardSetBlockRequests([[x, y,
-          (mouse1Down && mouse2Down)
-            ? (Math.random() > 0.5 ? drawType1 : drawType2)
-            : (mouse1Down ? drawType1 : drawType2)
-        ]])
-      );
+      const requests: Array<[number, number, number]> = [];
+      switch (drawRadius) {
+        case 0:
+          requests.push([pos.x, pos.y, drawMat]);
+          break;
+        case 1:
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+              requests.push([pos.x + dx, pos.y + dy, drawMat]);
+            }
+          }
+          break;
+        default:
+          pixelCircle(pos.x, pos.y, drawRadius, (x, y) => requests.push([x, y, drawMat]));
+          break;
+      }
+      server.forwardSetBlockRequests(requests);
     }
   }
 });
