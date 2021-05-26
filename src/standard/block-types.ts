@@ -156,6 +156,15 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#787878"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateStatic,
+  acidResistance: 0.7,
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Barrier",
+  color: Color.fromHex("#e55"),
+  densityFunc: densityConstant(250),
+  tickBehaviorGen: () => updateStatic,
+  acidResistance: 1,
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -206,24 +215,28 @@ standardBlockTypes.push(new BlockType({
   name: "Acid",
   color: Color.fromHex("#26d15f"),
   densityFunc: densityConstant(120),
-  tickBehaviorGen: () => updateFlow(0.8, updateStatic),
   acidResistance: 1,
-  randomTickBehaviorGen: (world_init) => {
+  tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     return (world, chunk, i) => {
       for (const offset of [[0, -1], [-1, 0], [1, 0]]) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        // try destroy adjacent block
-        if (adj !== null && world.getRandomFloat() > world.getBlockType(adj[0].getTypeOfBlock(adj[1])).acidResistance) {
-          world.trySetTypeOfBlock(adj[0], adj[1], airMat);
-          // try destroy self
-          if(world.getRandomFloat() > 0.7){
-            world.trySetTypeOfBlock(chunk, i, airMat);
+        if (world.getRandomFloat() > 0.8) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          // try destroy adjacent block
+          if (adj !== null && world.getRandomFloat() > world.getBlockType(adj[0].getTypeOfBlock(adj[1])).acidResistance) {
+            world.trySetTypeOfBlock(adj[0], adj[1], airMat);
+            // try destroy self
+            if (world.getRandomFloat() > 0.7) {
+              world.trySetTypeOfBlock(chunk, i, airMat);
+              return;
+            }
           }
         }
       }
+      updateFlow(0.8, updateStatic)(world, chunk, i);
     };
-  }
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -267,4 +280,93 @@ standardBlockTypes.push(new BlockType({
       }
     };
   }
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Gray Goo",
+  color: Color.fromHex("#666699"),
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const gooMat = world_init.getBlockTypeIndex("Gray Goo") ?? 0;
+    const barrierMat = world_init.getBlockTypeIndex("Barrier") ?? 0;
+
+    return (world, chunk, i) => {
+      // convert surrounding blocks
+      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        if (world.getRandomFloat() > 0.6) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if (adj === null) {
+            continue;
+          }
+
+          const adjMat = adj[0].getTypeOfBlock(adj[1]);
+          if (adjMat !== airMat && adjMat !== gooMat && adjMat !== barrierMat) {
+            world.tryMutateTypeOfBlock(adj[0], adj[1], gooMat);
+          }
+        }
+      }
+
+      updateCrumble(updateStatic)(world, chunk, i);
+    };
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Virus",
+  color: Color.fromHex("#c066f9"),
+  acidResistance: 0,
+  densityFunc: densityConstant(50),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const virusMat = world_init.getBlockTypeIndex("Virus") ?? 0;
+    const barrierMat = world_init.getBlockTypeIndex("Barrier") ?? 0;
+
+    return (world, chunk, i) => {
+      if (world.getRandomFloat() > 0.95) {
+        world.trySetTypeOfBlock(chunk, i, airMat);
+        return;
+      }
+
+      // destroy self if not connected to anything
+      let adjacentSurfaces = 0;
+      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          continue;
+        }
+
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if (adjMat !== airMat && adjMat !== virusMat) {
+          adjacentSurfaces ++;
+        }
+      }
+
+      if(adjacentSurfaces <= 1){
+        if(world.getRandomFloat() > 0.95){
+          world.trySetTypeOfBlock(chunk, i, airMat);
+        }else{
+          updateCascade(updateStatic)(world, chunk, i);
+        }
+        return;
+      }
+
+      // convert surrounding blocks
+      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          continue;
+        }
+
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if (adjMat !== virusMat && adjMat !== barrierMat) {
+          if (world.getRandomFloat() > 0.6) {
+            world.tryMutateTypeOfBlock(adj[0], adj[1], virusMat);
+          }
+        }
+      }
+    };
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
 }));

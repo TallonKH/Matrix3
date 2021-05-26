@@ -52,6 +52,12 @@ standardBlockShaders.set("Stone", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("Barrier", {
+  min: Color.fromHex("#d55"),
+  max: Color.fromHex("#e55"),
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("Water", {
   min: Color.fromHex("#3b78f7"),
   max: Color.fromHex("#408cff"),
@@ -64,6 +70,28 @@ standardBlockShaders.set("Acid", {
   max: Color.fromHex("#3deb54"),
   timeFactor1: 1,
   timeScale1: 0.001,
+});
+
+standardBlockShaders.set("Gray Goo", {
+  min: Color.fromHex("#666699"),
+  max: Color.fromHex("#777799"),
+  timeFactor1: 0.3,
+  timeOffsetFactor1: 0.0012,
+  timeScale1: 0.001,
+  timeFactor2: 0.7,
+  timeOffsetFactor2: 0.1,
+  timeScale2: 0.003,
+});
+
+standardBlockShaders.set("Virus", {
+  min: Color.fromHex("#c066f9"),
+  max: Color.fromHex("#f076ff"),
+  timeFactor1: 0.3,
+  timeOffsetFactor1: 0.0012,
+  timeScale1: 0.001,
+  timeFactor2: 0.7,
+  timeOffsetFactor2: 0.1,
+  timeScale2: 0.01,
 });
 
 standardBlockShaders.set("Steam", {
