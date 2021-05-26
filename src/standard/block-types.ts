@@ -10,6 +10,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   tickBehaviorGen: () => updateFlow(1, updateStatic),
+  acidResistance: 1,
 }));
 
 

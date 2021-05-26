@@ -205,7 +205,7 @@ export default class World {
     shuffleArray(this.getRandomFloatBound, loadedChunks);
     for (const chunk of loadedChunks) {
       for (let n = 0; n < this.randomTicksPerTick; n++) {
-        const i = ~~(this.getRandomFloat() * CHUNK_SIZE2m1);
+        const i = ~~(this.getRandomFloat() * CHUNK_SIZE2);
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeOfBlock(i)].doRandomTick(this, chunk, i);
         }

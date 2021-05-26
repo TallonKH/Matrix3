@@ -17,4 +17,4 @@ export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
 /**
  * Chunk size squared, minus 1
  */
-export const CHUNK_SIZE2m1 = CHUNK_SIZE * (CHUNK_SIZE - 1);
+export const CHUNK_SIZE2m1 = (CHUNK_SIZE * CHUNK_SIZE) - 1;
