@@ -97,7 +97,7 @@ standardBlockTypes.push(new BlockType({
         }
       }
 
-      updateFall(updateStatic);
+      updateFall(updateStatic)(world, chunk, i);
     };
   },
 }));
@@ -120,7 +120,7 @@ standardBlockTypes.push(new BlockType({
         }
       }
 
-      updateFall(updateStatic);
+      updateFall(updateStatic)(world, chunk, i);
     };
   },
 }));

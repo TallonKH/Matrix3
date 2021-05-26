@@ -56,8 +56,8 @@ let shiftKeyDown = false;
 
 let panSpeed = -10;
 let drawRadius = 3;
-let drawType1 = 1;
-let drawType2 = 2;
+let drawType1 = 4;
+let drawType2 = 1;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
