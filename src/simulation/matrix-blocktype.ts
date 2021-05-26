@@ -19,7 +19,7 @@ interface BlockTypeArgs {
   heatedBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
   acidResistance?: number,
-  blastResistance?: number,
+  invincible?: boolean,
 }
 
 export default class BlockType {
@@ -36,9 +36,9 @@ export default class BlockType {
   private densityFunc: DensityFunc;
   private initialized = false;
   public readonly acidResistance: number;
-  public readonly blastResistance: number;
+  public readonly invincible: boolean;
 
-  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, heatedBehaviorGen, densityFunc, acidResistance, blastResistance }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, heatedBehaviorGen, densityFunc, acidResistance, invincible }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.tickBehaviorGen = tickBehaviorGen;
@@ -49,7 +49,7 @@ export default class BlockType {
     this.heatedBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
     this.acidResistance = acidResistance ?? 0.1;
-    this.blastResistance = blastResistance ?? 0.1;
+    this.invincible = invincible ?? false;
   }
 
   public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);

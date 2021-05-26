@@ -5,6 +5,8 @@ import World from "../simulation/matrix-world";
 
 export const standardBlockTypes: Array<BlockType> = [];
 
+const adjacentCoords = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+
 standardBlockTypes.push(new BlockType({
   name: "Air",
   color: Color.fromHex("#e6f2ff"),
@@ -53,7 +55,7 @@ standardBlockTypes.push(new BlockType({
 
     return (world, chunk, i) => {
       // if touching lava, become glass
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
           world.tryMutateTypeOfBlock(chunk, i, glassMat);
@@ -90,7 +92,7 @@ standardBlockTypes.push(new BlockType({
 
     return (world, chunk, i) => {
       // if touching lava, become sand
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
           world.tryMutateTypeOfBlock(chunk, i, sandMat);
@@ -113,7 +115,7 @@ standardBlockTypes.push(new BlockType({
 
     return (world, chunk, i) => {
       // if touching lava, become dirt
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
           world.tryMutateTypeOfBlock(chunk, i, dirtMat);
@@ -165,6 +167,7 @@ standardBlockTypes.push(new BlockType({
   densityFunc: densityConstant(250),
   tickBehaviorGen: () => updateStatic,
   acidResistance: 1,
+  invincible: true,
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -178,7 +181,7 @@ standardBlockTypes.push(new BlockType({
 
     return (world, chunk, i) => {
       // if touching lava, become steam or make the lava stone
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
           if (world.getRandomFloat() > 0.7) {
@@ -222,8 +225,13 @@ standardBlockTypes.push(new BlockType({
       for (const offset of [[0, -1], [-1, 0], [1, 0]]) {
         if (world.getRandomFloat() > 0.8) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if(adj === null){
+            continue;
+          }
+
           // try destroy adjacent block
-          if (adj !== null && world.getRandomFloat() > world.getBlockType(adj[0].getTypeOfBlock(adj[1])).acidResistance) {
+          const adjType = world.getBlockType(adj[0].getTypeOfBlock(adj[1]));
+          if ((!adjType.invincible) && world.getRandomFloat() > adjType.acidResistance) {
             world.trySetTypeOfBlock(adj[0], adj[1], airMat);
             // try destroy self
             if (world.getRandomFloat() > 0.7) {
@@ -253,7 +261,7 @@ standardBlockTypes.push(new BlockType({
       if (world.getRandomFloat() > 0.8) {
         // if not surrounded by lava, make self stone
         let allLava = true;
-        for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        for (const offset of adjacentCoords) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
           if (adj !== null && adj[0].getTypeOfBlock(adj[1]) !== lavaMat) {
             allLava = false;
@@ -265,7 +273,7 @@ standardBlockTypes.push(new BlockType({
         }
       } else {
         // if touching stone, make it lava
-        for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        for (const offset of adjacentCoords) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
           if (adj === null) {
             continue;
@@ -289,11 +297,10 @@ standardBlockTypes.push(new BlockType({
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const gooMat = world_init.getBlockTypeIndex("Gray Goo") ?? 0;
-    const barrierMat = world_init.getBlockTypeIndex("Barrier") ?? 0;
 
     return (world, chunk, i) => {
       // convert surrounding blocks
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         if (world.getRandomFloat() > 0.6) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
           if (adj === null) {
@@ -301,7 +308,7 @@ standardBlockTypes.push(new BlockType({
           }
 
           const adjMat = adj[0].getTypeOfBlock(adj[1]);
-          if (adjMat !== airMat && adjMat !== gooMat && adjMat !== barrierMat) {
+          if (adjMat !== airMat && adjMat !== gooMat && !world.getBlockType(adjMat).invincible) {
             world.tryMutateTypeOfBlock(adj[0], adj[1], gooMat);
           }
         }
@@ -321,9 +328,9 @@ standardBlockTypes.push(new BlockType({
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const virusMat = world_init.getBlockTypeIndex("Virus") ?? 0;
-    const barrierMat = world_init.getBlockTypeIndex("Barrier") ?? 0;
 
     return (world, chunk, i) => {
+      const nears = [];
       if (world.getRandomFloat() > 0.95) {
         world.trySetTypeOfBlock(chunk, i, airMat);
         return;
@@ -331,36 +338,33 @@ standardBlockTypes.push(new BlockType({
 
       // destroy self if not connected to anything
       let adjacentSurfaces = 0;
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
         if (adj === null) {
           continue;
         }
 
+        nears.push(adj);
+
         const adjMat = adj[0].getTypeOfBlock(adj[1]);
         if (adjMat !== airMat && adjMat !== virusMat) {
-          adjacentSurfaces ++;
+          adjacentSurfaces++;
         }
       }
 
-      if(adjacentSurfaces <= 1){
-        if(world.getRandomFloat() > 0.95){
+      if (adjacentSurfaces <= 1) {
+        if (world.getRandomFloat() > 0.95) {
           world.trySetTypeOfBlock(chunk, i, airMat);
-        }else{
+        } else {
           updateCascade(updateStatic)(world, chunk, i);
         }
         return;
       }
 
       // convert surrounding blocks
-      for (const offset of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj === null) {
-          continue;
-        }
-
+      for (const adj of nears) {
         const adjMat = adj[0].getTypeOfBlock(adj[1]);
-        if (adjMat !== virusMat && adjMat !== barrierMat) {
+        if (adjMat !== virusMat && !world.getBlockType(adjMat).invincible) {
           if (world.getRandomFloat() > 0.6) {
             world.tryMutateTypeOfBlock(adj[0], adj[1], virusMat);
           }
@@ -369,4 +373,70 @@ standardBlockTypes.push(new BlockType({
     };
   },
   randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Cloner",
+  color: Color.fromHex("#0aa6a9"),
+  acidResistance: 1,
+  invincible: true,
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const cloneMat = world_init.getBlockTypeIndex("Cloner") ?? 0;
+
+    return (world, chunk, i) => {
+      // get surrounding empty spaces and cloneable blocks; also kill other clones
+      const emptySpots = [];
+      const cloneableTypes = [];
+      for (const offset of adjacentCoords) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          continue;
+        }
+
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if (adjMat === airMat) {
+          emptySpots.push(adj);
+        } else if (adjMat === cloneMat) {
+          world.trySetTypeOfBlock(adj[0], adj[1], airMat);
+        } else if (!world.getBlockType(adjMat).invincible) {
+          cloneableTypes.push(adjMat);
+        }
+      }
+
+      if (cloneableTypes.length > 0) {
+        for (const adj of emptySpots) {
+          world.trySetTypeOfBlock(adj[0], adj[1], cloneableTypes[~~(world.getRandomFloat() * cloneableTypes.length)]);
+        }
+      }
+    };
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Void",
+  color: Color.fromHex("#103"),
+  acidResistance: 1,
+  invincible: true,
+  densityFunc: densityConstant(200),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (world, chunk, i) => {
+      // get surrounding empty spaces and cloneable blocks; also kill other clones
+      for (const offset of adjacentCoords) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          continue;
+        }
+
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if (adjMat !== airMat && !world.getBlockType(adjMat).invincible) {
+          world.trySetTypeOfBlock(adj[0], adj[1], airMat);
+        }
+      }
+    };
+  },
 }));

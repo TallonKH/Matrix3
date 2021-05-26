@@ -94,6 +94,30 @@ standardBlockShaders.set("Virus", {
   timeScale2: 0.01,
 });
 
+standardBlockShaders.set("Cloner", {
+  min: Color.fromHex("#0aa6a9"),
+  max: Color.fromHex("#5ad6c9"),
+  timeFactor1: 0.3,
+  timeOffsetFactor1: 0.0012,
+  timeScale1: 0.001,
+  timeFactor2: 0.7,
+  timeOffsetFactor2: 0.1,
+  timeScale2: 0.003,
+});
+
+standardBlockShaders.set("Void", {
+  min: Color.fromHex("#102"),
+  mid1: Color.fromHex("#205"),
+  max: Color.fromHex("#608"),
+  mid1x: 0.99,
+  timeFactor1: 0.9,
+  timeOffsetFactor1: 0.002,
+  timeScale1: 0.001,
+  timeFactor2: 0.1,
+  timeOffsetFactor2: 1,
+  timeScale2: 0.01,
+});
+
 standardBlockShaders.set("Steam", {
   min: Color.fromHex("#d0d0d0"),
   max: Color.fromHex("#e8e8e8"),
