@@ -1,4 +1,5 @@
 import MatrixClient from "../client/client";
+import { pixelCircle } from "../library";
 import MatrixServer from "../server/server";
 import { standardBlockShaders } from "../standard/block-shaders";
 import { standardBlockTypes } from "../standard/block-types";
@@ -96,9 +97,9 @@ document.addEventListener("keyup", (e) => {
 });
 
 window.setInterval(() => {
-  if(shiftKeyDown){
+  if (shiftKeyDown) {
     panSpeed = -100;
-  }else{
+  } else {
     panSpeed = -10;
   }
   if (leftKeyDown) {
@@ -124,10 +125,12 @@ document.addEventListener("mouseup", (e) => {
   mouseDown = false;
 });
 document.addEventListener("mousemove", (e) => {
-  if(mouseDown){
+  if (mouseDown) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
-    if(pos !== null){
-      server.forwardSetBlockRequests([[~~pos.x, ~~pos.y, 4]]);
+    if (pos !== null) {
+      pixelCircle(pos.x, pos.y, 4,
+        (x, y) => server.forwardSetBlockRequests([[x, y, ~~(Math.random() * (standardBlockTypes.length - 1) + 1)]])
+      );
     }
   }
 });

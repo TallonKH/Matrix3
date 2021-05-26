@@ -136,3 +136,17 @@ export function* iterFilter<T>(iter: Iterable<T>, filter: (item: T) => boolean):
     }
   }
 }
+
+export const pixelCircle = (x: number, y: number, r: number, func: (x: number, y: number) => void): void => {
+  const r2 = r * r;
+  for (let yy = -r; yy < 0; yy++) {
+    const xw = Math.floor(Math.sqrt(r2 - (yy * yy)));
+    for (let xx = x - xw; xx < x + xw; xx++) {
+      func(xx, y + yy);
+      func(xx, y - yy);
+    }
+  }
+  for (let xx = x - r; xx < x + r; xx++) {
+    func(xx, y);
+  }
+};
