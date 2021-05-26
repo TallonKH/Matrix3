@@ -56,7 +56,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 4;
+  private pixelsPerBlock = 5;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -132,7 +132,7 @@ export default class GridDisplay {
 
     const argList: BlockShaderFactorList = shaderArgsToFactorList(args);
     this.blockShaders[id] = argList;
-    console.log(this.blockShaders);
+    // console.log(this.blockShaders);
     return argList;
   }
 
@@ -251,9 +251,9 @@ export default class GridDisplay {
           Math.floor(drawX),
           Math.floor(drawY)
         );
-        this.ctx.textBaseline = "top";
-        this.ctx.fillStyle = "black";
-        this.ctx.fillText(`${x}:${y}`, drawX, drawY);
+        // this.ctx.textBaseline = "top";
+        // this.ctx.fillStyle = "black";
+        // this.ctx.fillText(`${x}:${y}`, drawX, drawY);
         // this.ctx.beginPath();
         // this.ctx.moveTo(
         //   ~~(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),

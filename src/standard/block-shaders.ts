@@ -3,36 +3,36 @@ import { Color } from "../library";
 
 export const standardBlockShaders: Map<string, BlockShaderFactorMap> = new Map();
 
-standardBlockShaders.set("air", {
+standardBlockShaders.set("Air", {
   min: Color.fromHex("#e6f2ff"),
   max: Color.fromHex("#e6f2ff"),
 });
 
-standardBlockShaders.set("gravel", {
+standardBlockShaders.set("Gravel", {
   min: Color.fromHex("#5a5452"),
   max: Color.fromHex("#787878"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("grass", {
+standardBlockShaders.set("Grass", {
   min: Color.fromHex("#57cf02"),
   max: Color.fromHex("#4eeb10"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("dirt", {
+standardBlockShaders.set("Dirt", {
   min: Color.fromHex("#6D4F30"),
   max: Color.fromHex("#836242"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("mud", {
+standardBlockShaders.set("Mud", {
   min: Color.fromHex("#472f18"),
   max: Color.fromHex("#5c3d1f"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("sand", {
+standardBlockShaders.set("Sand", {
   min: Color.fromHex("#f0d422"),
   mid2: Color.fromHex("#ffe645"),
   max: Color.fromHex("#fff0c0"),
@@ -40,19 +40,19 @@ standardBlockShaders.set("sand", {
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("wet_sand", {
+standardBlockShaders.set("Wet Sand", {
   min: Color.fromHex("#978157"),
   max: Color.fromHex("#A89560"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("stone", {
+standardBlockShaders.set("Stone", {
   min: Color.fromHex("#787878"),
   max: Color.fromHex("#8c8c8c"),
   timeFactor1: 1,
 });
 
-standardBlockShaders.set("water", {
+standardBlockShaders.set("Water", {
   min: Color.fromHex("#3b78f7"),
   // mid2: Color.fromHex("#408cff"),
   // max: Color.fromHex("#86afff"),
@@ -68,7 +68,7 @@ standardBlockShaders.set("water", {
   // timeScale2: 0.0001,
 });
 
-standardBlockShaders.set("lava", {
+standardBlockShaders.set("Lava", {
   min: Color.fromHex("#e11010"),
   mid1x: 0.1,
   mid1: Color.fromHex("#ff3500"),

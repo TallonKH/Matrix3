@@ -33,15 +33,15 @@ for (const [name, shader] of standardBlockShaders) {
   mainDisplay.registerBlockShader(name, shader);
 }
 
-const container = document.getElementById("inner-container");
-if (container === null) {
+const displayContainer = document.getElementById("display");
+if (displayContainer === null) {
   throw "no container";
 }
 mainDisplay.canvas.style.height = "100%";
 mainDisplay.canvas.style.width = "100%";
-mainDisplay.canvas.style.border = "2px solid black";
+
 // mainDisplay.canvas.style.background = "linear-gradient(0deg, #0F0 0%, #040 100%)";
-container.appendChild(mainDisplay.canvas);
+displayContainer.appendChild(mainDisplay.canvas);
 
 mainDisplay.startDrawLoop();
 server.performGlobalTick();
@@ -56,6 +56,7 @@ let shiftKeyDown = false;
 
 let panSpeed = -10;
 let drawRadius = 3;
+let drawType = 1;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
@@ -149,19 +150,42 @@ window.setInterval(() => {
 }, (1000 / 30));
 
 let mouseDown = false;
-document.addEventListener("mousedown", () => {
+mainDisplay.canvas.addEventListener("mousedown", () => {
   mouseDown = true;
 });
 document.addEventListener("mouseup", () => {
   mouseDown = false;
 });
-document.addEventListener("mousemove", (e) => {
+mainDisplay.canvas.addEventListener("mousemove", (e) => {
   if (mouseDown) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     if (pos !== null) {
       pixelCircle(pos.x, pos.y, drawRadius,
-        (x, y) => server.forwardSetBlockRequests([[x, y, Math.random() > 0.5 ? 3 : 1]])
+        (x, y) => server.forwardSetBlockRequests([[x, y, drawType]])
       );
     }
   }
 });
+
+const toolbarContainer = document.getElementById("toolbar");
+if (toolbarContainer === null) {
+  throw "no container";
+}
+
+const buttons: Array<HTMLElement> = [];
+for (let i = 0; i < standardBlockTypes.length; i++) {
+  const btype = standardBlockTypes[i];
+  const button = document.createElement("div");
+  buttons.push(button);
+  button.classList.add("block-type-button");
+  button.style.backgroundColor = btype.color.toHex();
+  button.innerHTML = btype.name;
+  button.addEventListener("click", () => {
+    for (const other of buttons) {
+      other.classList.remove("selected");
+    }
+    button.classList.add("selected");
+    drawType = i + 1;
+  });
+  toolbarContainer.appendChild(button);
+}

@@ -22,10 +22,64 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 50px;
+  padding: 0px;
+  position: relative;
 }
+
 #inner-container {
+  /* border: 2px solid black; */
   width: 100%;
   height: 100%;
+  display: flex;
   /* border: 2px dashed green; */
+}
+
+#display {
+  width: 100%;
+  /* width: calc(100% - 100px); */
+}
+
+#toolbar {
+  position: absolute;
+  display: flex;
+  right: 0px;
+  flex-direction: column;
+  align-items: flex-end;
+  /* justify-content: left; */
+  box-shadow: 0px 0px 4px black;
+  height: 100%;
+  background-color: #eee8;
+  width: 150px;
+}
+
+.block-type-button {
+  height: 40px;
+  /* margin: 5px; */
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  padding: 5px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #eee;
+  text-shadow: 0px 0px 4px black;
+  width: 60%;
+  transition: all 0.3s;
+  /* border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px; */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.block-type-button:hover {
+  width: 80%;
+  transition: all 0.1s;
+}
+
+.block-type-button.selected {
+  width: 100%;
+  height: 60px;
+  box-shadow: 0px 0px 4px black;
+  z-index: 1;
+  transition: all 0.1s;
 }

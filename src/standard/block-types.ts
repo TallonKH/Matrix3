@@ -6,7 +6,7 @@ import World from "../simulation/matrix-world";
 export const standardBlockTypes: Array<BlockType> = [];
 
 standardBlockTypes.push(new BlockType({
-  name: "air",
+  name: "Air",
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   tickBehaviorGen: () => updateFlow(1, updateStatic),
@@ -14,19 +14,19 @@ standardBlockTypes.push(new BlockType({
 
 
 standardBlockTypes.push(new BlockType({
-  name: "gravel",
+  name: "Gravel",
   color: Color.fromHex("#5a5452"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateCrumble(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "dirt",
+  name: "Dirt",
   color: Color.fromHex("#7E572E"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world: World): TickBehavior => {
-    const waterMat = world.getBlockTypeIndex("water") ?? 0;
-    const mudMat = world.getBlockTypeIndex("mud") ?? 0;
+    const waterMat = world.getBlockTypeIndex("Water") ?? 0;
+    const mudMat = world.getBlockTypeIndex("Mud") ?? 0;
 
     return (world, chunk, i) => {
       // if water above, become wet sand
@@ -41,12 +41,12 @@ standardBlockTypes.push(new BlockType({
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "sand",
+  name: "Sand",
   color: Color.fromHex("#f0d422"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world: World): TickBehavior => {
-    const waterMat = world.getBlockTypeIndex("water") ?? 0;
-    const wetSandMat = world.getBlockTypeIndex("wet_sand") ?? 0;
+    const waterMat = world.getBlockTypeIndex("Water") ?? 0;
+    const wetSandMat = world.getBlockTypeIndex("Wet Sand") ?? 0;
 
     return (world, chunk, i) => {
       // if water above, become wet sand
@@ -61,26 +61,26 @@ standardBlockTypes.push(new BlockType({
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "wet_sand",
+  name: "Wet Sand",
   color: Color.fromHex("#978157"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "mud",
+  name: "Mud",
   color: Color.fromHex("#472f18"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "grass",
+  name: "Grass",
   color: Color.fromHex("#4eeb10"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world: World): TickBehavior => {
-    const airMat = world.getBlockTypeIndex("air") ?? 0;
-    const dirtMat = world.getBlockTypeIndex("dirt") ?? 0;
+    const airMat = world.getBlockTypeIndex("Air") ?? 0;
+    const dirtMat = world.getBlockTypeIndex("Dirt") ?? 0;
 
     return (world, chunk, i) => {
       // if no dirt below, become dirt
@@ -100,21 +100,21 @@ standardBlockTypes.push(new BlockType({
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "stone",
+  name: "Stone",
   color: Color.fromHex("#787878"),
   densityFunc: densityConstant(200),
   tickBehaviorGen: () => updateStatic,
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "water",
+  name: "Water",
   color: Color.fromHex("#408cff"),
   densityFunc: densityConstant(100),
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
-  name: "lava",
+  name: "Lava",
   color: Color.fromHex("#ff3500"),
   densityFunc: densityConstant(100),
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),

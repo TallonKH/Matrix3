@@ -20,13 +20,13 @@ export class CheckerGen extends WorldGenerator {
   }
 
   public init(): boolean {
-    this.matAir = this.world.getBlockTypeIndex("air") ?? 0;
-    this.matGrass = this.world.getBlockTypeIndex("grass") ?? 0;
-    this.matDirt = this.world.getBlockTypeIndex("dirt") ?? 0;
-    this.matStone = this.world.getBlockTypeIndex("stone") ?? 0;
-    this.matWater = this.world.getBlockTypeIndex("water") ?? 0;
-    this.matGravel = this.world.getBlockTypeIndex("gravel") ?? 0;
-    this.matSand = this.world.getBlockTypeIndex("sand") ?? 0;
+    this.matAir = this.world.getBlockTypeIndex("Air") ?? 0;
+    this.matGrass = this.world.getBlockTypeIndex("Grass") ?? 0;
+    this.matDirt = this.world.getBlockTypeIndex("Dirt") ?? 0;
+    this.matStone = this.world.getBlockTypeIndex("Stone") ?? 0;
+    this.matWater = this.world.getBlockTypeIndex("Water") ?? 0;
+    this.matGravel = this.world.getBlockTypeIndex("Gravel") ?? 0;
+    this.matSand = this.world.getBlockTypeIndex("Sand") ?? 0;
     
     return (
       this.matAir &
