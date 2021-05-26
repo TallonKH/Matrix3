@@ -107,7 +107,9 @@ body {
 }
 
 .block-type-button.selected-primary:hover,
-.block-type-button.selected-secondary:hover {
+.block-type-button.selected-secondary:hover,
+.block-type-button.selected-primary:active,
+.block-type-button.selected-secondary:active {
   width: 100%;
 }
 .block-type-button.selected-primary {
