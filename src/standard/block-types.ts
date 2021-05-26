@@ -116,6 +116,6 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Lava",
   color: Color.fromHex("#ff3500"),
-  densityFunc: densityConstant(100),
+  densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateFlow(0.8, updateStatic),
 }));
