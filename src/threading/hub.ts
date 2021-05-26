@@ -56,7 +56,8 @@ let shiftKeyDown = false;
 
 let panSpeed = -10;
 let drawRadius = 3;
-let drawType = 1;
+let drawType1 = 1;
+let drawType2 = 2;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
@@ -149,19 +150,44 @@ window.setInterval(() => {
   // console.log(mainDisplay.getViewOrigin());
 }, (1000 / 30));
 
-let mouseDown = false;
-mainDisplay.canvas.addEventListener("mousedown", () => {
-  mouseDown = true;
+let mouse1Down = false;
+let mouse2Down = false;
+mainDisplay.canvas.addEventListener("mousedown", (e) => {
+  switch (e.button) {
+    case 0:
+      mouse1Down = true;
+      break;
+    case 2:
+      mouse2Down = true;
+      break;
+  }
 });
-document.addEventListener("mouseup", () => {
-  mouseDown = false;
+document.addEventListener("mouseup", (e) => {
+  switch (e.button) {
+    case 0:
+      mouse1Down = false;
+      break;
+    case 2:
+      mouse2Down = false;
+      break;
+  }
 });
+
+mainDisplay.canvas.oncontextmenu = (e) => {
+  e.preventDefault();
+  return false;
+};
+
 mainDisplay.canvas.addEventListener("mousemove", (e) => {
-  if (mouseDown) {
+  if (mouse1Down || mouse2Down) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     if (pos !== null) {
       pixelCircle(pos.x, pos.y, drawRadius,
-        (x, y) => server.forwardSetBlockRequests([[x, y, drawType]])
+        (x, y) => server.forwardSetBlockRequests([[x, y,
+          (mouse1Down && mouse2Down)
+            ? (Math.random() > 0.5 ? drawType1 : drawType2)
+            : (mouse1Down ? drawType1 : drawType2)
+        ]])
       );
     }
   }
@@ -180,12 +206,30 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   button.classList.add("block-type-button");
   button.style.backgroundColor = btype.color.toHex();
   button.innerHTML = btype.name;
-  button.addEventListener("click", () => {
-    for (const other of buttons) {
-      other.classList.remove("selected");
+  button.addEventListener("click", (e) => {
+    if (e.button === 0) {
+      for (const other of buttons) {
+        other.classList.remove("selected-primary");
+      }
+      button.classList.add("selected-primary");
+      drawType1 = i + 1;
+    } else if (e.button === 2) {
+      for (const other of buttons) {
+        other.classList.remove("selected-secondary");
+      }
+      button.classList.add("selected-secondary");
+      drawType2 = i + 1;
     }
-    button.classList.add("selected");
-    drawType = i + 1;
   });
+  if (drawType1 - 1 === i) {
+    button.classList.add("selected-primary");
+  }
+  if (drawType2 - 1 === i) {
+    button.classList.add("selected-secondary");
+  }
+  button.oncontextmenu = (e) => {
+    e.preventDefault();
+    return false;
+  };
   toolbarContainer.appendChild(button);
 }
