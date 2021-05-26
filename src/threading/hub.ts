@@ -55,6 +55,7 @@ let downKeyDown = false;
 let shiftKeyDown = false;
 
 let panSpeed = -10;
+let drawRadius = 3;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
@@ -72,6 +73,36 @@ document.addEventListener("keydown", (e) => {
       break;
     case "Shift":
       shiftKeyDown = true;
+      break;
+    case "0":
+      drawRadius = 1;
+      break;
+    case "1":
+      drawRadius = 2;
+      break;
+    case "2":
+      drawRadius = 3;
+      break;
+    case "3":
+      drawRadius = 5;
+      break;
+    case "4":
+      drawRadius = 10;
+      break;
+    case "5":
+      drawRadius = 15;
+      break;
+    case "6":
+      drawRadius = 20;
+      break;
+    case "7":
+      drawRadius = 25;
+      break;
+    case "8":
+      drawRadius = 35;
+      break;
+    case "9":
+      drawRadius = 50;
       break;
   }
 });
@@ -128,7 +159,7 @@ document.addEventListener("mousemove", (e) => {
   if (mouseDown) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     if (pos !== null) {
-      pixelCircle(pos.x, pos.y, 4,
+      pixelCircle(pos.x, pos.y, drawRadius,
         (x, y) => server.forwardSetBlockRequests([[x, y, 1]])
       );
     }
