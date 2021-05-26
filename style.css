@@ -51,6 +51,7 @@ body {
   background-color: #eee8;
   width: 100px;
   padding: 5px;
+  padding-right: 0px;
 }
 
 .block-type-button {
