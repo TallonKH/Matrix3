@@ -1,5 +1,5 @@
 import { NPoint, PointStr } from "../lib/NLib/npoint";
-import { ANTIDIRS, Color, DIRECTIONS, mixRands, shuffleArray } from "../library";
+import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, shuffleArray } from "../library";
 import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2 } from "../matrix-common";
 import WorldHandler from "../world-handler";
 import BlockType from "./matrix-blocktype";
@@ -38,7 +38,7 @@ export default class World {
   private time = 0;
   private rand = 1;
   private initialized = false;
-  public readonly handler : WorldHandler;
+  public readonly handler: WorldHandler;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
     this.handler = handler;
@@ -90,6 +90,10 @@ export default class World {
     this.queueNeighbors(chunk, i, true);
   }
 
+  /**
+   * THIS ONLY WORKS IF IT HAPPENS WITHIN THE GLOBAL TICK,
+   * because resetNexts() will clear any changes
+   */
   public trySetTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
     if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // // reset creation time
@@ -102,6 +106,10 @@ export default class World {
     }
   }
 
+  /**
+   * THIS ONLY WORKS IF IT HAPPENS WITHIN THE GLOBAL TICK,
+   * because resetNexts() will clear any changes
+   */
   public tryMutateTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
     if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // set type (for the next iteration)
@@ -158,6 +166,11 @@ export default class World {
     }
   }
 
+  public pushClientBlockChangeRequest(chunk: Chunk, i: number, btype: number): void {
+    chunk.pendingClientChanges.push([i, btype]);
+    this.queueNeighbors(chunk, i, true);
+  }
+
   /**
    * Logic update for all pending blocks
    */
@@ -165,26 +178,29 @@ export default class World {
     if (!this.initialized) {
       throw "Attempted global tick before initialization";
     }
-    
-    if(this.loadedChunks.size === 0){
+    if (this.loadedChunks.size === 0) {
       return;
     }
-    
-    // update pending chunks/blocks
-    for (const [, chunk] of this.loadedChunks) {
-      if (!chunk.pendingTick) {
-        continue;
-      }
+
+    // make scrambled list of pending chunks
+    const chunksScrambled = Array.from(iterFilter(this.loadedChunks.values(), (c) => c.pendingTick));
+    shuffleArray(this.getRandomFloatBound, chunksScrambled);
+
+    // reset nexts
+    for (const chunk of chunksScrambled) {
       chunk.resetNexts();
     }
 
-    const chunks = Array.from(this.loadedChunks.values());
-    shuffleArray(this.getRandomFloatBound, chunks);
-    for (const chunk of chunks) {
-      if (!chunk.pendingTick) {
-        continue;
+    // apply client changes
+    for (const chunk of chunksScrambled) {
+      for (const [i, btype] of chunk.pendingClientChanges) {
+        this.trySetTypeOfBlock(chunk, i, btype, true);
       }
+      chunk.pendingClientChanges.length = 0;
+    }
 
+    // perform updates
+    for (const chunk of chunksScrambled) {
       shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
@@ -193,27 +209,21 @@ export default class World {
       }
     }
 
-    for (const [, chunk] of this.loadedChunks) {
-      if (!chunk.pendingTick) {
-        continue;
-      }
+    // apply nexts
+    for (const chunk of chunksScrambled) {
       chunk.applyNexts();
     }
-    for(const [, chunk] of this.loadedChunks){
-      if(chunk.pendingTick){
-        this.handler.sendChunkData(chunk.coord, {
-          types: chunk.getBlockTypes(),
-          ids: chunk.getBlockIds(),
-        });
-      }
+
+    // forward changes to server/handler
+    for (const chunk of chunksScrambled) {
+      this.handler.sendChunkData(chunk.coord, {
+        types: chunk.getBlockTypes(),
+        ids: chunk.getBlockIds(),
+      });
     }
-    
+
     // apply/flush the pendingPending buffer
-    for (const [, chunk] of this.loadedChunks) {
-      if (!chunk.pendingTick) {
-        continue;
-      }
-      
+    for (const chunk of chunksScrambled) {
       chunk.blocksPendingTick = chunk.blocksPendingPendingTick;
       chunk.pendingTick = chunk.blocksPendingTick.length > 0;
       chunk.blocksPendingPendingTick = [];

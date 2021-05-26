@@ -116,11 +116,18 @@ window.setInterval(() => {
   // console.log(mainDisplay.getViewOrigin());
 }, (1000 / 30));
 
-//height: 171 blocks
-// ~75 blocks y=~19200 = 256 | 300
-// ~40 blocks y=~9980 = 249.5 | 155
-// ~23 blocks y=~4880 = 212.1 | 76.25
-// 0 blocks y=~ 0
-// ~-19 blocks y=~ -3930 = 206
-// ~-43 blocks y=~ -10580 = 246
-// ~-78 blocks y=~ -19310 = 247
+let mouseDown = false;
+document.addEventListener("mousedown", (e) => {
+  mouseDown = true;
+});
+document.addEventListener("mouseup", (e) => {
+  mouseDown = false;
+});
+document.addEventListener("mousemove", (e) => {
+  if(mouseDown){
+    const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
+    if(pos !== null){
+      server.forwardSetBlockRequests([[~~pos.x, ~~pos.y, 4]]);
+    }
+  }
+});

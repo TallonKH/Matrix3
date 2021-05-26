@@ -136,6 +136,15 @@ export default class GridDisplay {
     return argList;
   }
 
+  public offsetPosToBlockPos(x: number, y: number): NPoint | null {
+    if (this.visibleMin === null || this.visibleMax === null) {
+      return null;
+    }
+    return new NPoint(
+      Math.floor((x - this.viewOrigin.x) / this.pixelsPerBlock), 
+      Math.floor((- y + this.viewOrigin.y) / this.pixelsPerBlock));
+  }
+
   /**
    * calculuates which chunks are currently visible
    *  - requests the world to keep visible chunks loaded
@@ -150,7 +159,7 @@ export default class GridDisplay {
     const newMinY = Math.floor(this.viewOriginCh.y - this.dimsCh.y) - this.visiblePadding;
     const newMaxX = Math.floor(this.dimsCh.x - this.viewOriginCh.x) + this.visiblePadding;
     const newMaxY = Math.floor(this.viewOriginCh.y) + this.visiblePadding;
-    
+
     if (this.visibleMin === null || this.visibleMax === null) {
       this.visibleMin = new NPoint(newMinX, newMinY);
       this.visibleMax = new NPoint(newMaxX, newMaxY);
@@ -234,12 +243,16 @@ export default class GridDisplay {
           chunkData.types,
           chunkData.ids
         );
+        const drawX = (x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock);
         const drawY = (this.visibleMax.y - this.visibleMin.y - 1) - ((y + 1) * CHUNK_SIZE) + (this.viewOrigin.y / this.pixelsPerBlock);
         this.ctx.drawImage(
           this.shaderKernel.canvas,
-          Math.floor(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),
+          Math.floor(drawX),
           Math.floor(drawY)
         );
+        this.ctx.textBaseline = "top";
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(`${x}:${y}`, drawX, drawY);
         // this.ctx.beginPath();
         // this.ctx.moveTo(
         //   ~~(x * CHUNK_SIZE + this.viewOrigin.x / this.pixelsPerBlock),

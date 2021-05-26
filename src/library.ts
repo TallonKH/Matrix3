@@ -58,7 +58,7 @@ export class Color {
       r = hex.charAt(0) + hex.charAt(1);
       g = hex.charAt(2) + hex.charAt(3);
       b = hex.charAt(4) + hex.charAt(5);
-    }else {
+    } else {
       throw `invalid hex code "${hex}"`;
     }
 
@@ -124,3 +124,15 @@ export const NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
   [Neighbors.DOWN, Neighbors.CENTER, Neighbors.UP],
   [Neighbors.DOWN_RIGHT, Neighbors.RIGHT, Neighbors.UP_RIGHT]
 ]);
+
+export const mod = (n: number, m: number): number => {
+  return ((n % m) + m) % m;
+}
+
+export function* iterFilter<T>(iter: Iterable<T>, filter: (item: T) => boolean): Iterable<T> {
+  for (const item of iter) {
+    if (filter(item)) {
+      yield item;
+    }
+  }
+}

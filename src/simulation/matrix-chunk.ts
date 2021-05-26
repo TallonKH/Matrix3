@@ -13,15 +13,18 @@ export enum UpdateFlags {
   LOCKED = 1,
 }
 
+
 /**
  * Chunk's fields are public because this is essentially a compound data structure.
  * Chunk shouldn't contain any real logic.
+ * Variables are typically public, unless changes should only be done in specific manners
  */
 export default class Chunk {
   public pendingTick = false;
   // store by id, not coord
   public blocksPendingTick: Array<number> = [];
   public blocksPendingPendingTick: Array<number> = [];
+  public pendingClientChanges: Array<[number, number]> = [];
 
   // public readonly light: Grid32 = new Uint32Array(CHUNK_SIZE2);
 
