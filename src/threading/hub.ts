@@ -206,7 +206,7 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   button.classList.add("block-type-button");
   button.style.backgroundColor = btype.color.toHex();
   button.innerHTML = btype.name;
-  button.addEventListener("click", (e) => {
+  button.addEventListener("mousedown", (e) => {
     if (e.button === 0) {
       for (const other of buttons) {
         other.classList.remove("selected-primary");
