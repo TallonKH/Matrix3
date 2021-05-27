@@ -54,40 +54,40 @@ standardBlockTypes.push(new BlockType({
       let hasSoil = false;
       let hasAir = false;
       let hasGrass = false;
-      for(const offset of adjacentCoords){
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if(adj === null){
+        if (adj === null) {
           continue;
         }
         const adjMat = adj[0].getTypeOfBlock(adj[1]);
-        if(adjMat === airMat){
+        if (adjMat === airMat) {
           hasAir = true;
           continue;
         }
-        if(adjMat === dirtMat || adjMat === mudMat){
+        if (adjMat === dirtMat || adjMat === mudMat) {
           hasSoil = true;
           continue;
         }
-        if(adjMat === grassMat){
+        if (adjMat === grassMat) {
           hasGrass = true;
           continue;
         }
       }
 
       // check corners for grass
-      if(!hasGrass){
-        for(const offset of cornerCoords){
+      if (!hasGrass) {
+        for (const offset of cornerCoords) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-          if(adj === null){
+          if (adj === null) {
             continue;
           }
-          if(adj[0].getTypeOfBlock(adj[1]) === grassMat){
+          if (adj[0].getTypeOfBlock(adj[1]) === grassMat) {
             hasGrass = true;
             break;
           }
         }
       }
-      if(hasGrass && hasAir && hasSoil){
+      if (hasGrass && hasAir && hasSoil) {
         world.tryMutateTypeOfBlock(chunk, i, grassMat);
       }
     };
@@ -194,23 +194,23 @@ standardBlockTypes.push(new BlockType({
       // if doesn't have both air and soil, become dirt
       let hasSoil = false;
       let hasAir = false;
-      for(const offset of adjacentCoords){
+      for (const offset of adjacentCoords) {
         const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if(adj === null){
+        if (adj === null) {
           continue;
         }
         const adjMat = adj[0].getTypeOfBlock(adj[1]);
-        if(adjMat === airMat){
+        if (adjMat === airMat) {
           hasAir = true;
           continue;
         }
-        if(adjMat === dirtMat || adjMat === mudMat){
+        if (adjMat === dirtMat || adjMat === mudMat) {
           hasSoil = true;
           continue;
         }
       }
 
-      if(!hasAir || !hasSoil){
+      if (!hasAir || !hasSoil) {
         world.tryMutateTypeOfBlock(chunk, i, dirtMat);
       }
     };
@@ -503,4 +503,183 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Plant",
+  color: Color.fromHex("#5a0"),
+  densityFunc: densityConstant(150),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Flower",
+  color: Color.fromHex("#faf"),
+  densityFunc: densityConstant(150),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Seed",
+  color: Color.fromHex("#380"),
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const seedMat = world_init.getBlockTypeIndex("Seed") ?? 0;
+    const plantMat = world_init.getBlockTypeIndex("Plant") ?? 0;
+    const flowerMat = world_init.getBlockTypeIndex("Flower") ?? 0;
+
+    return (world, chunk, i) => {
+      // if no neighboring plants, fall
+      let nearPlant = false;
+      for (const offset of neighboringCoords) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          return;
+        }
+        if (adj[0].getTypeOfBlock(adj[1]) === plantMat) {
+          nearPlant = true;
+          break;
+        }
+      }
+
+      // try to fall; keep track of if it succeeds
+      let fell = true;
+      if (!nearPlant) {
+        updateFall(() => {
+          fell = false;
+        })(world, chunk, i);
+      }else{
+        fell = false;
+      }
+
+      // if does not fall, try grow
+      if (!fell) {
+        const below = chunk.getNearIndexI(i, 0, -1);
+        if (below === null) {
+          return;
+        }
+        const belowMat = below[0].getTypeOfBlock(below[1]);
+        if (belowMat === seedMat || (belowMat === airMat && !nearPlant)) {
+          return;
+        }
+
+        const above = chunk.getNearIndexI(i, 0, 1);
+        if (above === null) {
+          return;
+        }
+        // if seeds above and ground below, become plant
+        const aboveMat = above[0].getTypeOfBlock(above[1]);
+        if (aboveMat === seedMat && belowMat !== seedMat && belowMat !== airMat) {
+          world.trySetTypeOfBlock(chunk, i, plantMat);
+          return;
+        }
+
+
+        // grow into air above
+        for (const offset of [[-1, 1], [0, 1], [1, 1]]) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if (adj === null) {
+            return;
+          }
+
+          const adjMat = adj[0].getTypeOfBlock(adj[1]);
+          if (adjMat === airMat) {
+            if (world.getRandomFloat() > (nearPlant ? 0.8 : 0)) {
+              world.trySetTypeOfBlock(adj[0], adj[1], seedMat);
+              world.trySetTypeOfBlock(chunk, i, plantMat);
+            }else{
+              if(world.getRandomFloat() > 0.7){
+                world.trySetTypeOfBlock(chunk, i, flowerMat);
+              }
+            }
+          }
+        }
+      }
+
+    };
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "MegaSeed",
+  color: Color.fromHex("#4f8"),
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: (world_init: World) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const seedMat = world_init.getBlockTypeIndex("Seed") ?? 0;
+    const megaseedMat = world_init.getBlockTypeIndex("MegaSeed") ?? 0;
+    const plantMat = world_init.getBlockTypeIndex("Plant") ?? 0;
+    const flowerMat = world_init.getBlockTypeIndex("Flower") ?? 0;
+
+    return (world, chunk, i) => {
+      // if no neighboring plants, fall
+      let nearPlant = false;
+      for (const offset of neighboringCoords) {
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if (adj === null) {
+          return;
+        }
+        if (adj[0].getTypeOfBlock(adj[1]) === plantMat) {
+          nearPlant = true;
+          break;
+        }
+      }
+
+      // try to fall; keep track of if it succeeds
+      let fell = true;
+      if (!nearPlant) {
+        updateFall(() => {
+          fell = false;
+        })(world, chunk, i);
+      }else{
+        fell = false;
+      }
+
+      // if does not fall, try grow
+      if (!fell) {
+        const below = chunk.getNearIndexI(i, 0, -1);
+        if (below === null) {
+          return;
+        }
+        const belowMat = below[0].getTypeOfBlock(below[1]);
+        if (belowMat === megaseedMat || (belowMat === airMat && !nearPlant)) {
+          return;
+        }
+
+        const above = chunk.getNearIndexI(i, 0, 1);
+        if (above === null) {
+          return;
+        }
+        // if seeds above and ground below, become plant
+        const aboveMat = above[0].getTypeOfBlock(above[1]);
+        if (aboveMat === megaseedMat && belowMat !== megaseedMat && belowMat !== airMat) {
+          world.trySetTypeOfBlock(chunk, i, plantMat);
+          return;
+        }
+
+
+        // grow into air above
+        for (const offset of [[-1, 1], [0, 1], [1, 1]]) {
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if (adj === null) {
+            return;
+          }
+
+          const adjMat = adj[0].getTypeOfBlock(adj[1]);
+          if (adjMat === airMat) {
+            if (world.getRandomFloat() > (nearPlant ? 0.6 : 0)) {
+              world.trySetTypeOfBlock(adj[0], adj[1], megaseedMat);
+              world.trySetTypeOfBlock(chunk, i, plantMat);
+            }else{
+              if(world.getRandomFloat() > 0.4){
+                world.trySetTypeOfBlock(chunk, i, flowerMat);
+              }
+            }
+          }
+        }
+      }
+
+    };
+  },
+  randomTickBehaviorGen: () => (world, chunk, i) => world.queueBlock(chunk, i),
 }));

@@ -72,6 +72,35 @@ standardBlockShaders.set("Acid", {
   timeScale1: 0.001,
 });
 
+standardBlockShaders.set("Seed", {
+  min: Color.fromHex("#360"),
+  max: Color.fromHex("#380"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("MegaSeed", {
+  min: Color.fromHex("#360"),
+  max: Color.fromHex("#4f8"),
+  timeFactor1: 1,
+  timeScale1: 0.01,
+});
+
+standardBlockShaders.set("Plant", {
+  min: Color.fromHex("#5a0"),
+  max: Color.fromHex("#5b0"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("Flower", {
+  min: Color.fromHex("#fa0"),
+  mid1: Color.fromHex("#ff0"),
+  mid2: Color.fromHex("#8ff"),
+  max: Color.fromHex("#faf"),
+  mid1x: 0.33,
+  mid2x: 0.66,
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("Gray Goo", {
   min: Color.fromHex("#666699"),
   max: Color.fromHex("#777799"),
