@@ -5,7 +5,9 @@ import World from "../simulation/matrix-world";
 
 export const standardBlockTypes: Array<BlockType> = [];
 
+const cornerCoords = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 const adjacentCoords = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+const neighboringCoords = Array.from([...cornerCoords, ...adjacentCoords]);
 
 standardBlockTypes.push(new BlockType({
   name: "Air",
@@ -38,6 +40,55 @@ standardBlockTypes.push(new BlockType({
         world.tryMutateTypeOfBlock(chunk, i, mudMat);
       } else {
         updateCascade(updateStatic)(world, chunk, i);
+      }
+    };
+  },
+  randomTickBehaviorGen: (world_init: World): TickBehavior => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
+    const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
+    const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
+
+    return (world, chunk, i) => {
+      // if has both air and soil and grass, become grass
+      let hasSoil = false;
+      let hasAir = false;
+      let hasGrass = false;
+      for(const offset of adjacentCoords){
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if(adj === null){
+          continue;
+        }
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if(adjMat === airMat){
+          hasAir = true;
+          continue;
+        }
+        if(adjMat === dirtMat || adjMat === mudMat){
+          hasSoil = true;
+          continue;
+        }
+        if(adjMat === grassMat){
+          hasGrass = true;
+          continue;
+        }
+      }
+
+      // check corners for grass
+      if(!hasGrass){
+        for(const offset of cornerCoords){
+          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+          if(adj === null){
+            continue;
+          }
+          if(adj[0].getTypeOfBlock(adj[1]) === grassMat){
+            hasGrass = true;
+            break;
+          }
+        }
+      }
+      if(hasGrass && hasAir && hasSoil){
+        world.tryMutateTypeOfBlock(chunk, i, grassMat);
       }
     };
   },
@@ -132,22 +183,35 @@ standardBlockTypes.push(new BlockType({
   name: "Grass",
   color: Color.fromHex("#4eeb10"),
   densityFunc: densityConstant(150),
-  tickBehaviorGen: (world_init: World): TickBehavior => {
+  tickBehaviorGen: () => updateFall(updateStatic),
+  randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
+    const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
+    const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
 
     return (world, chunk, i) => {
-      // if no dirt below, become dirt
-      const below = chunk.getNearIndexI(i, 0, -1);
-      if (below !== null && below[0].getTypeOfBlock(below[1]) !== dirtMat) {
-        world.tryMutateTypeOfBlock(chunk, i, dirtMat);
-        return;
+      // if doesn't have both air and soil, become dirt
+      let hasSoil = false;
+      let hasAir = false;
+      for(const offset of adjacentCoords){
+        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
+        if(adj === null){
+          continue;
+        }
+        const adjMat = adj[0].getTypeOfBlock(adj[1]);
+        if(adjMat === airMat){
+          hasAir = true;
+          continue;
+        }
+        if(adjMat === dirtMat || adjMat === mudMat){
+          hasSoil = true;
+          continue;
+        }
       }
-      // if no air above, become dirt
-      const above = chunk.getNearIndexI(i, 0, 1);
-      if (above !== null && above[0].getTypeOfBlock(above[1]) !== airMat) {
+
+      if(!hasAir || !hasSoil){
         world.tryMutateTypeOfBlock(chunk, i, dirtMat);
-        return;
       }
     };
   },
@@ -225,7 +289,7 @@ standardBlockTypes.push(new BlockType({
       for (const offset of [[0, -1], [-1, 0], [1, 0]]) {
         if (world.getRandomFloat() > 0.8) {
           const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-          if(adj === null){
+          if (adj === null) {
             continue;
           }
 
