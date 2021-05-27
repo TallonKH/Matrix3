@@ -14,6 +14,9 @@ const bt_missing: BlockType = new BlockType({
   color: new Color(1, 0, 1),
 });
 
+const chunkImporter = new TextEncoder();
+const chunkExporter = new TextDecoder("utf-16");
+
 /**
  * fill the world with bt_missing
  */
@@ -30,6 +33,7 @@ class MissingWorldGen extends WorldGenerator {
 
 export default class World {
   private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
+  private readonly storedChunks: Map<PointStr, [Uint16Array, Uint8Array]> = new Map();
   private readonly loadedChunks: Map<PointStr, Chunk> = new Map();
   private readonly worldGenGen: (world: World) => WorldGenerator;
   private worldGen?: WorldGenerator;
@@ -160,8 +164,25 @@ export default class World {
 
     if (count === 1) {
       this.chunkLoadRequests.delete(ch);
-      // TODO store chunks instead of deleting them
-      this.loadedChunks.delete(ch);
+
+      const chunk = this.loadedChunks.get(ch);
+      if (chunk !== undefined) {
+        // clear neighbors' reference to unloaded chunk
+        for (let i = 0; i < 8; i++) {
+          const neighbor = this.getChunk(x + DIRECTIONS[i].x, y + DIRECTIONS[i].y);
+          if (neighbor !== undefined) {
+            neighbor.neighbors[ANTIDIRS[i]] = null;
+          }
+        }
+
+        // store
+        if (chunk.needsSaving) {
+          this.storedChunks.set(ch, [chunk.getBlockData(), chunk.getBlockFlags()]);
+        }
+
+        // unload
+        this.loadedChunks.delete(ch);
+      }
     } else {
       this.chunkLoadRequests.set(ch, count - 1);
     }
@@ -197,7 +218,9 @@ export default class World {
       for (const [i, btype] of chunk.pendingClientChanges) {
         this.trySetTypeOfBlock(chunk, i, btype, true);
       }
-      chunk.pendingClientChanges.length = 0;
+      if (chunk.pendingClientChanges.length > 0) {
+        chunk.pendingClientChanges.length = 0;
+      }
     }
 
     // perform random ticks
@@ -222,9 +245,10 @@ export default class World {
       }
     }
 
-    // apply nexts
+    // apply nexts, and tell chunks to save themselves upon unload
     for (const chunk of pendingChunks) {
       chunk.applyNexts();
+      chunk.needsSaving = true;
     }
 
     // forward changes to server/handler
@@ -298,6 +322,9 @@ export default class World {
   }
 
   /**
+   * if chunk is loaded, return it; 
+   * if that fails, generate it
+   * 
    * impure; will create the chunk if it does not exist
    */
   public acquireChunk(x: number, y: number): Chunk {
@@ -313,39 +340,45 @@ export default class World {
       return existing;
     }
 
-    // create new chunk
-    const newChunk = new Chunk(x, y);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.worldGen!.generate(this, x, y, newChunk);
 
-    // randomize ids
-    let rand = mixRands(x, y);
-    for (let i = 0; i < CHUNK_SIZE2; i++) {
-      rand = mixRands(rand, i);
-      newChunk.setCurrentIdOfBlock(i, rand & 0b11111111);
+    // pull from storage
+    let chunk;
+    const storedData = this.storedChunks.get(ch);
+    if (storedData !== undefined) {
+      chunk = new Chunk(x, y, storedData[0], storedData[1]);
+    } else {
+      // create new chunk
+      chunk = new Chunk(x, y);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.worldGen!.generate(this, x, y, chunk);
+
+      // randomize ids
+      let rand = mixRands(x, y);
+      for (let i = 0; i < CHUNK_SIZE2; i++) {
+        rand = mixRands(rand, i);
+        chunk.setCurrentIdOfBlock(i, rand & 0b11111111);
+      }
+
     }
 
+    // // update chunk
     // for (let i = 0; i < CHUNK_SIZE2; i++) {
-    //   this.queueBlock(newChunk, i);
+    //   this.queueBlock(chunk, i);
     // }
-    this.loadedChunks.set(ch, newChunk);
+
+    this.loadedChunks.set(ch, chunk);
 
     // assign neighbors
     for (let i = 0; i < 8; i++) {
       const neighbor = this.getChunk(x + DIRECTIONS[i].x, y + DIRECTIONS[i].y);
       if (neighbor !== undefined) {
-        newChunk.neighbors[i] = neighbor;
-        neighbor.neighbors[ANTIDIRS[i]] = newChunk;
+        chunk.neighbors[i] = neighbor;
+        neighbor.neighbors[ANTIDIRS[i]] = chunk;
       }
     }
 
-    // send updated data to server/clients
-    // this.handler.sendChunkData(newChunk.coord, {
-    //   types: newChunk.getBlockTypes(),
-    //   ids: newChunk.getBlockIds(),
-    // });
-    this.handler.sendChunkData(newChunk.coord, newChunk.getBlockData());
-    return newChunk;
+    this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
+    return chunk;
   }
 
   public getChunk(x: number, y: number): Chunk | undefined {

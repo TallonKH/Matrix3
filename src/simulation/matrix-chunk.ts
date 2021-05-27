@@ -45,8 +45,13 @@ export default class Chunk {
    * 1: ~~received tick~~
    * 2: locked
    */
-  private readonly flags: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+  private readonly flags: Uint8Array;
   private readonly flagsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
+
+  /**
+   * whether or not this chunk should be saved to storage next time it's unloaded
+   */
+  public needsSaving = false;
 
   // private readonly creationTimes: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2); // wraps around
   // private readonly creationTimesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
@@ -56,13 +61,23 @@ export default class Chunk {
   // private readonly tempsNext: Uint8Array = new Uint8Array(CHUNK_SIZE2);
   // private readonly types: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
   // private readonly typesNext: Uint8ClampedArray = new Uint8ClampedArray(CHUNK_SIZE2);
-  private readonly blockData = new Uint16Array(CHUNK_SIZE2);
+  private readonly blockData;
   private readonly blockDataNext = new Uint16Array(CHUNK_SIZE2);
 
   public readonly coord: NPoint;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, blockData?: Uint16Array, flags?: Uint8Array) {
     this.coord = new NPoint(x, y);
+    this.blockData = blockData ?? new Uint16Array(CHUNK_SIZE2);
+    this.flags = flags ?? new Uint8Array(CHUNK_SIZE2);
+    if(flags !== undefined){
+      for(let i=0; i<CHUNK_SIZE2; i++){
+        if(this.flags[i] & 1){
+          this.blocksPendingTick.push(i);
+        }
+      }
+      this.pendingTick = true;
+    }
   }
 
   public getBlockData(): Uint16Array {
@@ -92,7 +107,7 @@ export default class Chunk {
     // this.types.set(this.typesNext);
     this.blockData.set(this.blockDataNext);
   }
-  
+
   public resetNexts(): void {
     this.flags.fill(0);
     // this.creationTimesNext.set(this.creationTimes);
@@ -156,6 +171,10 @@ export default class Chunk {
   // public setNextCreationTimeOfBlock(index: number, id: number): void {
   //   this.creationTimesNext[index] = id;
   // }
+
+  public getBlockFlags(): Uint8Array {
+    return this.flags;
+  }
 
   public getFlagOfBlock(index: number, flag: UpdateFlags): boolean {
     return ((this.flags[index] >> flag) & 1) === 1;
