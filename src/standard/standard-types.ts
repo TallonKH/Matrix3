@@ -1,5 +1,5 @@
 import { Color } from "../library";
-import { updateCascade, updateCrumble, updateFall, updateFlow } from "./block-behaviors";
+import { updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 

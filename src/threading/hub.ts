@@ -1,9 +1,9 @@
 import MatrixClient from "../client/client";
 import { pixelCircle } from "../library";
 import MatrixServer from "../server/server";
-import { standardBlockShaders } from "../standard/block-shaders";
-import { standardBlockTypes } from "../standard/block-types";
-import { CheckerGen } from "../standard/terrain-generator";
+import { standardBlockShaders } from "../standard/standard-shaders";
+import { standardBlockTypes } from "../standard/standard-types";
+import { CheckerGen } from "../standard/standard-terrain-gen";
 
 const parts: [MatrixServer | null, MatrixClient | null] = [null, null];
 
