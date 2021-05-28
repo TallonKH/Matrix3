@@ -1,20 +1,17 @@
 import { Color } from "../library";
-import { updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
+import { allTagsPresent, anyTypesHaveAllTags, getAdjacentTypes, getRelatives, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 
 export const standardBlockTypes: Array<BlockType> = [];
-
-const cornerCoords = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-const adjacentCoords = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-const neighboringCoords = Array.from([...cornerCoords, ...adjacentCoords]);
 
 standardBlockTypes.push(new BlockType({
   name: "Air",
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   tickBehaviorGen: () => updateFlow(1, updateStatic),
-  acidResistance: 1,
+  numbers: [["acid-resistance", 1]],
+  tags: ["replaceable", "breathable"],
 }));
 
 
@@ -23,72 +20,25 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#5a5452"),
   densityFunc: densityConstant(150),
   tickBehaviorGen: () => updateCrumble(updateStatic),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "crumbling", "stone-based", "earth", "meltable"],
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Dirt",
   color: Color.fromHex("#7E572E"),
   densityFunc: densityConstant(150),
-  tickBehaviorGen: (world_init: World): TickBehavior => {
-    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
-    const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
-
-    return (world, chunk, i) => {
-      // if water above, become wet sand
-      const above = chunk.getNearIndexI(i, 0, 1);
-      if (above !== null && above[0].getTypeOfBlock(above[1]) === waterMat) {
-        world.tryMutateTypeOfBlock(chunk, i, mudMat);
-      } else {
-        updateCascade(updateStatic)(world, chunk, i);
-      }
-    };
-  },
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "cascading", "soil", "earth"],
+  tickBehaviorGen: () => updateCascade(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
-    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
-    const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
     const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
-    const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
 
-    return (world, chunk, i) => {
-      // if has both air and soil and grass, become grass
-      let hasSoil = false;
-      let hasAir = false;
-      let hasGrass = false;
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj === null) {
-          continue;
-        }
-        const adjMat = adj[0].getTypeOfBlock(adj[1]);
-        if (adjMat === airMat) {
-          hasAir = true;
-          continue;
-        }
-        if (adjMat === dirtMat || adjMat === mudMat) {
-          hasSoil = true;
-          continue;
-        }
-        if (adjMat === grassMat) {
-          hasGrass = true;
-          continue;
-        }
-      }
-
-      // check corners for grass
-      if (!hasGrass) {
-        for (const offset of cornerCoords) {
-          const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-          if (adj === null) {
-            continue;
-          }
-          if (adj[0].getTypeOfBlock(adj[1]) === grassMat) {
-            hasGrass = true;
-            break;
-          }
-        }
-      }
-      if (hasGrass && hasAir && hasSoil) {
-        world.tryMutateTypeOfBlock(chunk, i, grassMat);
+    return (w, c, i) => {
+      // become mud if hydrated
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["hydrating"])) {
+        w.tryMutateTypeOfBlock(c, i, mudMat);
+        return;
       }
     };
   },
@@ -98,28 +48,25 @@ standardBlockTypes.push(new BlockType({
   name: "Sand",
   color: Color.fromHex("#f0d422"),
   densityFunc: densityConstant(150),
-  tickBehaviorGen: (world_init: World): TickBehavior => {
-    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
+  numbers: [["acid-resistance", 0.3]],
+  tags: ["solid", "unstable", "falling", "cascading", "sandy", "earth", "meltable"],
+  tickBehaviorGen: () => updateCascade(updateStatic),
+  randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const glassMat = world_init.getBlockTypeIndex("Glass") ?? 0;
-    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
     const wetSandMat = world_init.getBlockTypeIndex("Wet Sand") ?? 0;
 
-    return (world, chunk, i) => {
-      // if touching lava, become glass
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
-          world.tryMutateTypeOfBlock(chunk, i, glassMat);
-          return;
-        }
+    return (w, c, i) => {
+      const adjTypes = getAdjacentTypes(w, c, i);
+      // become glass if melted
+      // TODO molten glass
+      if (anyTypesHaveAllTags(adjTypes, ["melter"])) {
+        w.tryMutateTypeOfBlock(c, i, glassMat);
+        return;
       }
-
-      // if water above, become wet sand
-      const above = chunk.getNearIndexI(i, 0, 1);
-      if (above !== null && above[0].getTypeOfBlock(above[1]) === waterMat) {
-        world.tryMutateTypeOfBlock(chunk, i, wetSandMat);
-      } else {
-        updateCascade(updateStatic)(world, chunk, i);
+      // become wet sand if hydrated
+      if (anyTypesHaveAllTags(adjTypes, ["hydrating"])) {
+        w.tryMutateTypeOfBlock(c, i, wetSandMat);
+        return;
       }
     };
   },
@@ -129,29 +76,28 @@ standardBlockTypes.push(new BlockType({
   name: "Glass",
   color: Color.fromHex("#e9f3f5"),
   densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable"],
   tickBehaviorGen: () => updateStatic,
-  acidResistance: 1,
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Wet Sand",
   color: Color.fromHex("#978157"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.2]],
+  tags: ["solid", "unstable", "falling", "sandy", "earth", "wet"],
   tickBehaviorGen: (world_init: World): TickBehavior => {
-    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
     const sandMat = world_init.getBlockTypeIndex("Sand") ?? 0;
 
-    return (world, chunk, i) => {
-      // if touching lava, become sand
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
-          world.tryMutateTypeOfBlock(chunk, i, sandMat);
-          return;
-        }
+    return (w, c, i) => {
+      // dry out when heated
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+        w.tryMutateTypeOfBlock(c, i, sandMat);
+        return;
       }
 
-      updateFall(updateStatic)(world, chunk, i);
+      updateFall(updateStatic)(w, c, i);
     };
   },
 }));
@@ -160,21 +106,19 @@ standardBlockTypes.push(new BlockType({
   name: "Mud",
   color: Color.fromHex("#472f18"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "soil", "earth", "wet"],
   tickBehaviorGen: (world_init: World): TickBehavior => {
-    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
-    return (world, chunk, i) => {
-      // if touching lava, become dirt
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
-          world.tryMutateTypeOfBlock(chunk, i, dirtMat);
-          return;
-        }
+    return (w, c, i) => {
+      // dry out when heated
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+        w.tryMutateTypeOfBlock(c, i, dirtMat);
+        return;
       }
 
-      updateFall(updateStatic)(world, chunk, i);
+      updateFall(updateStatic)(w, c, i);
     };
   },
 }));
@@ -183,36 +127,21 @@ standardBlockTypes.push(new BlockType({
   name: "Grass",
   color: Color.fromHex("#4eeb10"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "earth", "plant", "organic"],
   tickBehaviorGen: () => updateFall(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
-    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
-    const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
     const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
 
-    return (world, chunk, i) => {
+    return (w, c, i) => {
       // if doesn't have both air and soil, become dirt
-      let hasSoil = false;
-      let hasAir = false;
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj === null) {
-          continue;
-        }
-        const adjMat = adj[0].getTypeOfBlock(adj[1]);
-        if (adjMat === airMat) {
-          hasAir = true;
-          continue;
-        }
-        if (adjMat === dirtMat || adjMat === mudMat) {
-          hasSoil = true;
-          continue;
-        }
+      if (!allTagsPresent(getAdjacentTypes(w, c, i), ["breathable", "soil"])) {
+        w.tryMutateTypeOfBlock(c, i, dirtMat);
+        return;
       }
 
-      if (!hasAir || !hasSoil) {
-        world.tryMutateTypeOfBlock(chunk, i, dirtMat);
-      }
+      // TODO try to convert other dirt into grass
     };
   },
 }));
@@ -221,57 +150,80 @@ standardBlockTypes.push(new BlockType({
   name: "Stone",
   color: Color.fromHex("#787878"),
   densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.7]],
+  tags: ["solid", "stable", "earth", "stone-based", "meltable"],
   tickBehaviorGen: () => updateStatic,
-  acidResistance: 0.7,
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Barrier",
   color: Color.fromHex("#e55"),
   densityFunc: densityConstant(250),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "invincible"],
   tickBehaviorGen: () => updateStatic,
-  acidResistance: 1,
-  invincible: true,
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Water",
   color: Color.fromHex("#408cff"),
   densityFunc: densityConstant(100),
-  tickBehaviorGen: (world: World): TickBehavior => {
-    const lavaMat = world.getBlockTypeIndex("Lava") ?? 0;
-    const steamMat = world.getBlockTypeIndex("Steam") ?? 0;
-    const stoneMat = world.getBlockTypeIndex("Stone") ?? 0;
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["fluid", "liquid", "falling", "unstable", "wet", "water-based", "hydrating", "boilable"],
+  tickBehaviorGen: (world_init) => {
+    const steamMat = world_init.getBlockTypeIndex("Steam") ?? 0;
 
-    return (world, chunk, i) => {
-      // if touching lava, become steam or make the lava stone
-      for (const offset of adjacentCoords) {
-        const adj = chunk.getNearIndexI(i, offset[0], offset[1]);
-        if (adj !== null && adj[0].getTypeOfBlock(adj[1]) === lavaMat) {
-          if (world.getRandomFloat() > 0.7) {
-            world.tryMutateTypeOfBlock(adj[0], adj[1], stoneMat);
-          } else {
-            world.tryMutateTypeOfBlock(chunk, i, steamMat);
-            return;
-          }
-        }
+    return (w, c, i) => {
+      // if heated a lot, instantly become steam
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["boiler"])) {
+        w.tryMutateTypeOfBlock(c, i, steamMat);
+        return;
       }
-
-      updateFlow(0.8, updateStatic)(world, chunk, i);
+      updateFlow(0.8, updateStatic)(w, c, i);
     };
   },
+  randomTickBehaviorGen: (world_init) => {
+    const steamMat = world_init.getBlockTypeIndex("Steam") ?? 0;
+
+    return (w, c, i) => {
+      // if heated a bit, sometimes become steam
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+        if (w.getRandomFloat() > 0.95) {
+          w.tryMutateTypeOfBlock(c, i, steamMat);
+        }
+      }
+    };
+  }
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Steam",
   color: Color.fromHex("#e3e3e3"),
   densityFunc: densityConstant(5),
-  tickBehaviorGen: () => updateFlow(0, updateStatic),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["fluid", "gas", "rising", "unstable", "wet", "water-based", "hot", "boiling"],
+  tickBehaviorGen: (world_init) => {
+    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
+
+    return (w, c, i) => {
+      // if cooled, instantly become water
+      if (anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["cold"])) {
+        w.tryMutateTypeOfBlock(c, i, waterMat);
+        return;
+      }
+
+      updateFlow(1, updateStatic)(w, c, i);
+    };
+  },
   randomTickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
-    return (world, chunk, i) => {
-      if (world.getRandomFloat() > 0.99) {
-        world.tryMutateTypeOfBlock(chunk, i, waterMat);
+
+    return (w, c, i) => {
+      // if not heated a lot, sometimes become water
+      if (!anyTypesHaveAllTags(getAdjacentTypes(w, c, i), ["boiler"])) {
+        if (w.getRandomFloat() > 0.95) {
+          w.tryMutateTypeOfBlock(c, i, waterMat);
+        }
       }
     };
   }
@@ -282,7 +234,8 @@ standardBlockTypes.push(new BlockType({
   name: "Acid",
   color: Color.fromHex("#26d15f"),
   densityFunc: densityConstant(120),
-  acidResistance: 1,
+  numbers: [["acid-resistance", 1]],
+  tags: ["fluid", "liquid", "falling", "unstable"],
   tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     return (world, chunk, i) => {
@@ -315,7 +268,10 @@ standardBlockTypes.push(new BlockType({
   name: "Lava",
   color: Color.fromHex("#ff3500"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.7]],
+  tags: ["fluid", "liquid", "falling", "unstable", "stone-based", "hot", "boiler", "melter"],
   tickBehaviorGen: () => updateFlow(0.02, updateStatic),
+  // TODO random solidify if touching hydrating block
   randomTickBehaviorGen: (world_init: World) => {
     const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
     const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
@@ -358,6 +314,8 @@ standardBlockTypes.push(new BlockType({
   name: "Gray Goo",
   color: Color.fromHex("#666699"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "falling", "unstable"],
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const gooMat = world_init.getBlockTypeIndex("Gray Goo") ?? 0;
@@ -387,7 +345,8 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Virus",
   color: Color.fromHex("#c066f9"),
-  acidResistance: 0,
+  numbers: [["acid-resistance", 0]],
+  tags: ["solid", "unstable", "falling", "organic"],
   densityFunc: densityConstant(50),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -442,8 +401,8 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Cloner",
   color: Color.fromHex("#0aa6a9"),
-  acidResistance: 1,
-  invincible: true,
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "invincible"],
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -482,8 +441,8 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Void",
   color: Color.fromHex("#103"),
-  acidResistance: 1,
-  invincible: true,
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "invincible"],
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -509,18 +468,24 @@ standardBlockTypes.push(new BlockType({
   name: "Plant",
   color: Color.fromHex("#5a0"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "stable", "organic", "plant"],
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Flower",
   color: Color.fromHex("#faf"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0]],
+  tags: ["solid", "stable", "organic", "plant"],
 }));
 
 standardBlockTypes.push(new BlockType({
   name: "Seed",
   color: Color.fromHex("#380"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "organic", "plant"],
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const seedMat = world_init.getBlockTypeIndex("Seed") ?? 0;
@@ -547,7 +512,7 @@ standardBlockTypes.push(new BlockType({
         updateFall(() => {
           fell = false;
         })(world, chunk, i);
-      }else{
+      } else {
         fell = false;
       }
 
@@ -586,8 +551,8 @@ standardBlockTypes.push(new BlockType({
             if (world.getRandomFloat() > (nearPlant ? 0.8 : 0)) {
               world.trySetTypeOfBlock(adj[0], adj[1], seedMat);
               world.trySetTypeOfBlock(chunk, i, plantMat);
-            }else{
-              if(world.getRandomFloat() > 0.7){
+            } else {
+              if (world.getRandomFloat() > 0.7) {
                 world.trySetTypeOfBlock(chunk, i, flowerMat);
               }
             }
@@ -604,6 +569,8 @@ standardBlockTypes.push(new BlockType({
   name: "MegaSeed",
   color: Color.fromHex("#4f8"),
   densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "unstable", "falling", "organic", "plant"],
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const seedMat = world_init.getBlockTypeIndex("Seed") ?? 0;
@@ -631,7 +598,7 @@ standardBlockTypes.push(new BlockType({
         updateFall(() => {
           fell = false;
         })(world, chunk, i);
-      }else{
+      } else {
         fell = false;
       }
 
@@ -670,8 +637,8 @@ standardBlockTypes.push(new BlockType({
             if (world.getRandomFloat() > (nearPlant ? 0.6 : 0)) {
               world.trySetTypeOfBlock(adj[0], adj[1], megaseedMat);
               world.trySetTypeOfBlock(chunk, i, plantMat);
-            }else{
-              if(world.getRandomFloat() > 0.4){
+            } else {
+              if (world.getRandomFloat() > 0.4) {
                 world.trySetTypeOfBlock(chunk, i, flowerMat);
               }
             }

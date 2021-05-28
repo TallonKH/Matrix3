@@ -18,14 +18,14 @@ interface BlockTypeArgs {
   randomTickBehaviorGen?: (world: World) => TickBehavior,
   heatedBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
-  acidResistance?: number,
-  invincible?: boolean,
+  tags?: Array<string>,
+  numbers?: Array<[string, number]>,
 }
 
 export default class BlockType {
   public readonly name: string;
   public readonly color: Color;
-  
+
   public readonly tickBehaviorGen?: (world: World) => TickBehavior;
   private tickBehavior: TickBehavior;
   public readonly randomTickBehaviorGen?: (world: World) => TickBehavior;
@@ -33,12 +33,12 @@ export default class BlockType {
   public readonly heatedBehaviorGen?: (world: World) => TickBehavior;
   private heatedBehavior: TickBehavior;
 
+  private readonly tags: Set<string> = new Set();
+  private readonly numbers: Map<string, number> = new Map();
   private densityFunc: DensityFunc;
   private initialized = false;
-  public readonly acidResistance: number;
-  public readonly invincible: boolean;
 
-  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, heatedBehaviorGen, densityFunc, acidResistance, invincible }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, heatedBehaviorGen, densityFunc, tags, numbers }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.tickBehaviorGen = tickBehaviorGen;
@@ -48,8 +48,16 @@ export default class BlockType {
     this.heatedBehaviorGen = heatedBehaviorGen;
     this.heatedBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
-    this.acidResistance = acidResistance ?? 0.1;
-    this.invincible = invincible ?? false;
+    tags?.forEach(this.tags.add);
+    numbers?.forEach(([k, v]) => this.numbers.set(k, v));
+  }
+
+  public hasTag(tag: string): boolean {
+    return this.tags.has(tag);
+  }
+
+  public getNumber(name: string): number | undefined{
+    return this.numbers.get(name);
   }
 
   public doTick: TickBehavior = (world: World, chunk: Chunk, index: number) => this.tickBehavior(world, chunk, index);

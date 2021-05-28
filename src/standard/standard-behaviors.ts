@@ -1,6 +1,64 @@
-import { TickBehavior } from "../simulation/matrix-blocktype";
+import BlockType, { TickBehavior } from "../simulation/matrix-blocktype";
 import Chunk, { UpdateFlags } from "../simulation/matrix-chunk";
-import { DOWN, DOWN_LEFT, DOWN_RIGHT, LEFT, NPoint, RIGHT } from "../lib/NLib/npoint";
+import { DOWN, DOWN_LEFT, DOWN_RIGHT, LEFT, NPoint, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
+import World from "../simulation/matrix-world";
+
+export const ADJ_COORDS = [LEFT, RIGHT, UP, DOWN];
+export const CORNER_COORDS = [DOWN_LEFT, DOWN_RIGHT, UP_LEFT, UP_RIGHT];
+export const NEIGHBOR_COORDS = Array.from([...CORNER_COORDS, ...ADJ_COORDS]);
+
+export const anyTypesHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
+  for (const typ of types) {
+    if (tags.every((tag) => typ.hasTag(tag))) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * every tag occurs at least once in at least one type
+ */
+export const allTagsPresent = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
+  for(const tag of tags){
+    let found = false;
+    for(const typ of types){
+      if(typ.hasTag(tag)){
+        found = true;
+        break;
+      }
+    }
+    if(!found){
+      return false;
+    }
+  }
+  return true;
+};
+
+export const getAdjacentTypes = (w: World, c: Chunk, i: number): Array<BlockType> =>
+  getRelativesTypes(w, c, i, ADJ_COORDS);
+
+export const getRelativesTypes = (w: World, c: Chunk, i: number, relativeCoords: Array<NPoint>): Array<BlockType> =>
+  getRelatives(c, i, relativeCoords).map((adj) => w.getBlockType(adj[0].getTypeOfBlock(adj[1])));
+
+export const relativeHasAllTags = (w: World, c: Chunk, i: number, ox: number, oy: number, tags: Array<string>): boolean => {
+  const adj = c.getNearIndexI(i, ox, oy);
+  if (adj === null) {
+    return false;
+  }
+  return tags.every((tag) => w.getBlockType(adj[0].getTypeOfBlock(adj[1])).hasTag(tag));
+};
+
+export const getRelatives = (c: Chunk, i: number, relativeCoords: Array<NPoint>): Array<[Chunk, number]> => {
+  const adjs: Array<[Chunk, number]> = [];
+  for (const coord of relativeCoords) {
+    const adj = c.getNearIndexI(i, coord.x, coord.y);
+    if (adj !== null) {
+      adjs.push(adj);
+    }
+  }
+  return adjs;
+};
 
 export const updateDisplaceN = (offsets: Array<NPoint>, fallback: TickBehavior): TickBehavior =>
   (world, chunk, i) => {

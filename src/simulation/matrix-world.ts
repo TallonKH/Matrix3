@@ -85,10 +85,6 @@ export default class World {
   //   }, ~~(1000 / targetTickrate));
   // }
 
-  public getTypeOfBlock(chunk: Chunk, i: number): number {
-    return chunk.getTypeOfBlock(i);
-  }
-
   public setBlockData(chunk: Chunk, i: number, data: BlockData): void {
     chunk.setNextBlockData(i, data);
     chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
