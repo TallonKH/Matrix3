@@ -126,7 +126,7 @@ export default class Chunk {
     this.blockDataNext[index] = (this.blockData[index] & 0x00ff) | (id << 8);
   }
 
-  public getTypeOfBlock(index: number): number {
+  public getTypeIndexOfBlock(index: number): number {
     // return this.types[index];
     return this.blockData[index] & 0x00ff;
   }

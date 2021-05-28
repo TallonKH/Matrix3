@@ -48,7 +48,7 @@ export default class BlockType {
     this.heatedBehaviorGen = heatedBehaviorGen;
     this.heatedBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
-    tags?.forEach(this.tags.add);
+    tags?.forEach((tag) => this.tags.add(tag));
     numbers?.forEach(([k, v]) => this.numbers.set(k, v));
   }
 

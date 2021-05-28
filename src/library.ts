@@ -127,15 +127,21 @@ export const NEIGHBOR_OFFSETS: Readonly<Array<Array<number>>> = Object.freeze([
 
 export const mod = (n: number, m: number): number => {
   return ((n % m) + m) % m;
-}
+};
 
-export function* iterFilter<T>(iter: Iterable<T>, filter: (item: T) => boolean): Iterable<T> {
+export const iterMap = function*<I, O>(iter: Iterable<I>, func: (item: I) => O): Iterable<O> {
+  for (const item of iter) {
+    yield func(item);
+  }
+};
+
+export const iterFilter = function*<T>(iter: Iterable<T>, filter: (item: T) => boolean): Iterable<T> {
   for (const item of iter) {
     if (filter(item)) {
       yield item;
     }
   }
-}
+};
 
 export const pixelCircle = (x: number, y: number, r: number, func: (x: number, y: number) => void): void => {
   const r2 = r * r;

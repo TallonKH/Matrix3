@@ -95,7 +95,7 @@ export default class World {
    * THIS ONLY WORKS IF IT HAPPENS WITHIN THE GLOBAL TICK,
    * because resetNexts() will clear any changes
    */
-  public trySetTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
+  public trySetTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): boolean {
     if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // // reset creation time
       // chunk.setNextCreationTimeOfBlock(i, this.time);
@@ -104,21 +104,25 @@ export default class World {
       chunk.setNextBlockId(i, mixRands(this.rand, i) & 0b11111111);
       // actually set type
       this.tryMutateTypeOfBlock(chunk, i, typeId, true);
+      return true;
     }
+    return false;
   }
 
   /**
    * THIS ONLY WORKS IF IT HAPPENS WITHIN THE GLOBAL TICK,
    * because resetNexts() will clear any changes
    */
-  public tryMutateTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): void {
+  public tryMutateTypeOfBlock(chunk: Chunk, i: number, typeId: number, force = false): boolean {
     if (force || !chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
       // set type (for the next iteration)
       chunk.setNextTypeOfBlock(i, typeId);
       chunk.setBlockFlagOn(i, UpdateFlags.LOCKED);
 
       this.queueNeighbors(chunk, i, true);
+      return true;
     }
+    return false;
   }
 
   public queueBlock(chunk: Chunk, i: number): void {
@@ -226,7 +230,7 @@ export default class World {
       for (let n = 0; n < this.randomTicksPerTick; n++) {
         const i = ~~(this.getRandomFloat() * CHUNK_SIZE2);
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
-          this.blockTypes[chunk.getTypeOfBlock(i)].doRandomTick(this, chunk, i);
+          this.blockTypes[chunk.getTypeIndexOfBlock(i)].doRandomTick(this, chunk, i);
         }
       }
     }
@@ -236,7 +240,7 @@ export default class World {
       shuffleArray(this.getRandomFloatBound, chunk.blocksPendingTick);
       for (const i of chunk.blocksPendingTick) {
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
-          this.blockTypes[chunk.getTypeOfBlock(i)].doTick(this, chunk, i);
+          this.blockTypes[chunk.getTypeIndexOfBlock(i)].doTick(this, chunk, i);
         }
       }
     }
@@ -281,7 +285,7 @@ export default class World {
   }
 
   public getDensityOfBlock(chunk: Chunk, index: number): number {
-    return this.getBlockType(chunk.getTypeOfBlock(index)).getDensity(this, chunk, index);
+    return this.getBlockType(chunk.getTypeIndexOfBlock(index)).getDensity(this, chunk, index);
   }
 
 

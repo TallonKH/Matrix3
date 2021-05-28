@@ -2,12 +2,19 @@ import BlockType, { TickBehavior } from "../simulation/matrix-blocktype";
 import Chunk, { UpdateFlags } from "../simulation/matrix-chunk";
 import { DOWN, DOWN_LEFT, DOWN_RIGHT, LEFT, NPoint, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
 import World from "../simulation/matrix-world";
+import { iterMap } from "../library";
 
 export const ADJ_COORDS = [LEFT, RIGHT, UP, DOWN];
 export const CORNER_COORDS = [DOWN_LEFT, DOWN_RIGHT, UP_LEFT, UP_RIGHT];
 export const NEIGHBOR_COORDS = Array.from([...CORNER_COORDS, ...ADJ_COORDS]);
 
-export const anyTypesHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
+export const trySetBlock = (w: World, rel: [Chunk, number], typeIndex: number): boolean => w.trySetTypeOfBlock(rel[0], rel[1], typeIndex);
+export const tryMutateBlock = (w: World, rel: [Chunk, number], typeIndex: number): boolean => w.tryMutateTypeOfBlock(rel[0], rel[1], typeIndex);
+
+/**
+ * Returns `true` iff any provided type contains every specified tag
+ */
+export const anyHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
   for (const typ of types) {
     if (tags.every((tag) => typ.hasTag(tag))) {
       return true;
@@ -17,47 +24,115 @@ export const anyTypesHaveAllTags = (types: Iterable<BlockType>, tags: Array<stri
 };
 
 /**
- * every tag occurs at least once in at least one type
+ * Returns `true` iff every specified tag occurs at least once in at least one provided type
  */
 export const allTagsPresent = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
-  for(const tag of tags){
+  for (const tag of tags) {
     let found = false;
-    for(const typ of types){
-      if(typ.hasTag(tag)){
+    for (const typ of types) {
+      if (typ.hasTag(tag)) {
         found = true;
         break;
       }
     }
-    if(!found){
+    if (!found) {
       return false;
     }
   }
   return true;
 };
 
-export const getAdjacentTypes = (w: World, c: Chunk, i: number): Array<BlockType> =>
-  getRelativesTypes(w, c, i, ADJ_COORDS);
+/**
+* Returns `true` iff all provided relative blocks have all specified tags.
+*/
+export const allHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
+  for (const typ of types) {
+    if (!tags.every((tag) => typ.hasTag(tag))) {
+      return false;
+    }
+  }
+  return true;
+};
 
-export const getRelativesTypes = (w: World, c: Chunk, i: number, relativeCoords: Array<NPoint>): Array<BlockType> =>
-  getRelatives(c, i, relativeCoords).map((adj) => w.getBlockType(adj[0].getTypeOfBlock(adj[1])));
-
+/**
+* Returns `true` iff the specified relative block has all specified tags.
+*/
 export const relativeHasAllTags = (w: World, c: Chunk, i: number, ox: number, oy: number, tags: Array<string>): boolean => {
   const adj = c.getNearIndexI(i, ox, oy);
   if (adj === null) {
     return false;
   }
-  return tags.every((tag) => w.getBlockType(adj[0].getTypeOfBlock(adj[1])).hasTag(tag));
+  return tags.every((tag) => getTypeOfBlock(w, adj).hasTag(tag));
 };
 
-export const getRelatives = (c: Chunk, i: number, relativeCoords: Array<NPoint>): Array<[Chunk, number]> => {
-  const adjs: Array<[Chunk, number]> = [];
+/**
+ * Gets the BlockType`s of all provided block references. 
+ * THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+ */
+export const getTypesOfBlocks = function* (w: World, refs: Iterable<[Chunk, number]>): Generator<BlockType> {
+  for (const ref of refs) {
+    yield getTypeOfBlock(w, ref);
+  }
+};
+
+export const getTypeOfBlock = (w: World, ref: [Chunk, number]): BlockType =>
+  w.getBlockType(ref[0].getTypeIndexOfBlock(ref[1]));
+
+export const filterBlocksByType = function* (w: World, refs: Iterable<[Chunk, number]>, filter: (t: BlockType) => boolean): Generator<[[Chunk, number], BlockType]> {
+  for (const ref of refs) {
+    const typ = getTypeOfBlock(w, ref);
+    if (filter(typ)) {
+      yield [ref, typ];
+    }
+  }
+};
+
+/**
+ * Gets the `BlockType`s of all neighboring blocks that exist.
+ * THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+ */
+export const getNeighboringTypes = (w: World, c: Chunk, i: number): Iterable<BlockType> =>
+  getRelativesTypes(w, c, i, NEIGHBOR_COORDS);
+
+/**
+ * Gets the `BlockType`s of all left/right/upper/lower blocks that exist.
+ * THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+ */
+export const getAdjacentTypes = (w: World, c: Chunk, i: number): Iterable<BlockType> =>
+  getRelativesTypes(w, c, i, ADJ_COORDS);
+
+/**
+* Gets the `BlockType`s of all specified relative blocks that exist.
+* THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+*/
+export const getRelativesTypes = (w: World, c: Chunk, i: number, relativeCoords: Array<NPoint>): Iterable<BlockType> =>
+  getTypesOfBlocks(w, getRelatives(c, i, relativeCoords));
+
+/**
+* Gets [chunk,index] references to all neighboring blocks that exist.
+* THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+*/
+export const getNeighbors = (c: Chunk, i: number): Iterable<[Chunk, number]> =>
+  getRelatives(c, i, NEIGHBOR_COORDS);
+
+/**
+* Gets [chunk,index] references to all left/right/upper/lower blocks that exist.
+* THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+*/
+export const getAdjacents = (c: Chunk, i: number): Iterable<[Chunk, number]> =>
+  getRelatives(c, i, ADJ_COORDS);
+
+/**
+* Gets [chunk,index] references to all specified relative blocks that exist.
+* THIS RETURNS AN ITERATOR! If you need to iterate multiple times, use Array.from()
+*/
+export const getRelatives = function* (c: Chunk, i: number, relativeCoords: Iterable<NPoint>): Generator<[Chunk, number]> {
   for (const coord of relativeCoords) {
     const adj = c.getNearIndexI(i, coord.x, coord.y);
     if (adj !== null) {
-      adjs.push(adj);
+      yield adj;
     }
   }
-  return adjs;
 };
 
 export const updateDisplaceN = (offsets: Array<NPoint>, fallback: TickBehavior): TickBehavior =>
