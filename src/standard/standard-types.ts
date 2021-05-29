@@ -138,7 +138,7 @@ standardBlockTypes.push(new BlockType({
 
 standardBlockTypes.push(new BlockType({
   name: "Grass",
-  color: Color.fromHex("#4eeb10"),
+  color: Color.fromHex("#3ecb10"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
   tags: ["solid", "unstable", "falling", "earth", "plant", "organic", "soil"],
@@ -182,6 +182,52 @@ standardBlockTypes.push(new BlockType({
   },
 }));
 
+
+standardBlockTypes.push(new BlockType({
+  name: "Moss",
+  color: Color.fromHex("#4b7006"),
+  densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.1]],
+  tags: ["solid", "stable", "plant", "organic", "hydrating"],
+  tickBehaviorGen: (world_init) => {
+    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
+
+    return (w, c, i) => {
+      // if lacking air or soil, become water sometimes
+      if (w.getRandomFloat() > 0.95 && !allTagsPresent(Array.from(getAdjacentTypes(w,c,i)), ["hydrating", "breathable"])) {
+        w.tryMutateTypeOfBlock(c, i, waterMat);
+        return;
+      }
+    };
+  },
+  randomTickBehaviorGen: (world_init: World): TickBehavior => {
+    const mossMat = world_init.getBlockTypeIndex("Moss") ?? 0;
+    const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
+
+    return (w, c, i) => {
+      const adjs = Array.from(getNeighbors(c, i));
+      const typs = Array.from(getTypesOfBlocks(w, adjs));
+
+      // if lacking air or soil, become dirt (do this in randomTick also with no random chance)
+      if (!allTagsPresent(Array.from(typs), ["hydrating", "breathable"])) {
+        w.tryMutateTypeOfBlock(c, i, waterMat);
+        return;
+      }
+
+      // try to create more grass
+      for (let i = 0; i < adjs.length; i++) {
+        if (typs[i].hasTag("mossable")) {
+          const adj = adjs[i];
+          // make sure candidate is has air & soil
+          if (allTagsPresent(Array.from(getAdjacentTypes(w, adj[0], adj[1])), ["hydrating", "breathable"])) {
+            w.tryMutateTypeOfBlock(adj[0], adj[1], mossMat);
+          }
+        }
+      }
+    };
+  },
+}));
+
 standardBlockTypes.push(new BlockType({
   name: "Stone",
   color: Color.fromHex("#787878"),
@@ -215,7 +261,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#408cff"),
   densityFunc: densityConstant(100),
   numbers: [["acid-resistance", 0.1]],
-  tags: ["fluid", "liquid", "falling", "unstable", "wet", "water-based", "hydrating", "boilable"],
+  tags: ["fluid", "liquid", "falling", "unstable", "wet", "water-based", "hydrating", "boilable", "mossable"],
   tickBehaviorGen: (world_init) => {
     const steamMat = world_init.getBlockTypeIndex("Steam") ?? 0;
 

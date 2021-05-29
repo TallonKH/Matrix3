@@ -15,8 +15,15 @@ standardBlockShaders.set("Gravel", {
 });
 
 standardBlockShaders.set("Grass", {
-  min: Color.fromHex("#57cf02"),
-  max: Color.fromHex("#4eeb10"),
+  min: Color.fromHex("#3ecb10"),
+  max: Color.fromHex("#57cf02"),
+  timeFactor1: 1,
+});
+
+standardBlockShaders.set("Moss", {
+  min: Color.fromHex("#4b7006"),
+  mid1: Color.fromHex("#799c11"),
+  max: Color.fromHex("#cefb30"),
   timeFactor1: 1,
 });
 
