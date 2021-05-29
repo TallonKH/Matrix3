@@ -41,7 +41,7 @@ standardBlockTypes.push(new BlockType({
   name: "Dirt",
   color: Color.fromHex("#7E572E"),
   densityFunc: densityConstant(150),
-  tags: ["solid", "unstable", "unbreathable", "falling", "crumbling", "soil", "earth", "grassable"],
+  tags: ["solid", "unstable", "unbreathable", "falling", "crumbling", "soil", "earth", "grassable", "seedable"],
   tickBehaviorGen: () => updateCrumble(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
@@ -118,7 +118,7 @@ standardBlockTypes.push(new BlockType({
   name: "Mud",
   color: Color.fromHex("#472f18"),
   densityFunc: densityConstant(150),
-  tags: ["solid", "unstable", "unbreathable", "falling", "soil", "earth", "wet", "grassable"],
+  tags: ["solid", "unstable", "unbreathable", "falling", "soil", "earth", "wet", "grassable", "seedable"],
   tickBehaviorGen: (world_init: World): TickBehavior => {
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
@@ -139,7 +139,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#3ecb10"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.2]],
-  tags: ["solid", "unstable", "unbreathable", "falling", "earth", "plant", "organic", "soil"],
+  tags: ["solid", "unstable", "unbreathable", "falling", "earth", "plant", "organic", "soil", "seedable"],
   tickBehaviorGen: (world_init) => {
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
@@ -185,7 +185,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#4b7006"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.2]],
-  tags: ["solid", "stable", "unbreathable", "plant", "organic", "hydrating"],
+  tags: ["solid", "stable", "unbreathable", "plant", "organic", "hydrating", "seedable"],
   tickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
 
@@ -562,7 +562,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#5a0"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.3]],
-  tags: ["solid", "stable", "unbreathable", "organic", "plant"],
+  tags: ["solid", "stable", "unbreathable", "organic", "plant", "seedable"],
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -588,39 +588,39 @@ standardBlockTypes.push(new BlockType({
     return (w, c, i) => {
       const nearPlant = anyHaveAllTags(getNeighboringTypes(w, c, i), ["plant", "stable"]);
 
-      // if no supporting plants, fall
-      if (!nearPlant) {
-        updateFall((w, c, i) => {
-          const below = c.getNearIndexI(i, 0, -1);
-          if (below === null) {
-            w.queueBlock(c, i);
-            return;
+      const below = c.getNearIndexI(i, 0, -1);
+      if (below === null) {
+        w.queueBlock(c, i);
+        return;
+      }
+
+      // if on seedable ground or near plant, try grow
+      if (nearPlant || getTypeOfBlock(w, below).hasTag("seedable")) {
+        // if solids above, abort & become plant
+        if (relativeHasTag(w, c, i, 0, 1, "solid")) {
+          w.tryMutateTypeOfBlock(c, i, plantMat);
+          return;
+        }
+
+        // proceed with trying to grow
+        for (const above of getRelatives(c, i, aboveCoords)) {
+          if (!getTypeOfBlock(w, above).hasTag("replaceable")) {
+            continue;
           }
 
-          // if on non-seed solid ground or near plant, try grow
-          const belowMatI = below[0].getTypeIndexOfBlock(below[1]);
-          if (nearPlant || (belowMatI !== seedMat && w.getBlockType(belowMatI).hasTag("solid"))) {
-            // if solids above, abort & become plant
-            if (relativeHasTag(w, c, i, 0, 1, "solid")) {
-              w.tryMutateTypeOfBlock(c, i, plantMat);
-              return;
-            }
-
-            // proceed with trying to grow
-            for (const above of getRelatives(c, i, aboveCoords)) {
-              if (!getTypeOfBlock(w, above).hasTag("gas")) {
-                continue;
-              }
-
-              if (w.getRandomFloat() > (nearPlant ? 0.8 : 0)) {
-                trySetBlock(w, above, seedMat);
-                w.tryMutateTypeOfBlock(c, i, plantMat);
-              } else if (w.getRandomFloat() > 0.7) {
-                w.trySetTypeOfBlock(c, i, flowerMat);
-              }
+          if (w.getRandomFloat() > (nearPlant ? 0.7 : 0)) {
+            trySetBlock(w, above, seedMat);
+            w.tryMutateTypeOfBlock(c, i, plantMat);
+          } else {
+            if (w.getRandomFloat() > 0.6) {
+              w.trySetTypeOfBlock(c, i, flowerMat);
+            }else{
+              w.trySetTypeOfBlock(c, i, plantMat);
             }
           }
-        })(w, c, i);
+        }
+      }else{
+        updateFall(updateStatic)(w,c,i);
       }
     };
   },
@@ -635,51 +635,48 @@ standardBlockTypes.push(new BlockType({
   tags: ["solid", "unstable", "unbreathable", "falling", "organic", "plant"],
   tickBehaviorGen: (world_init: World) => {
     const aboveCoords = [UP_LEFT, UP, UP_RIGHT];
-    const seedMat = world_init.getBlockTypeIndex("Seed") ?? 0;
+    const seedMat = world_init.getBlockTypeIndex("MegaSeed") ?? 0;
     const plantMat = world_init.getBlockTypeIndex("Plant") ?? 0;
     const flowerMat = world_init.getBlockTypeIndex("Flower") ?? 0;
 
     return (w, c, i) => {
       const nearPlant = anyHaveAllTags(getNeighboringTypes(w, c, i), ["plant", "stable"]);
 
-      // if no supporting plants, fall
-      if (!nearPlant) {
-        updateFall((w, c, i) => {
-          const below = c.getNearIndexI(i, 0, -1);
-          if (below === null) {
-            w.queueBlock(c, i);
-            return;
+      const below = c.getNearIndexI(i, 0, -1);
+      if (below === null) {
+        w.queueBlock(c, i);
+        return;
+      }
+
+      // if on seedable ground or near plant, try grow
+      if (nearPlant || getTypeOfBlock(w, below).hasTag("seedable")) {
+        // if solids above, abort & become plant
+        if (relativeHasTag(w, c, i, 0, 1, "solid")) {
+          w.tryMutateTypeOfBlock(c, i, plantMat);
+          return;
+        }
+
+        // proceed with trying to grow
+        for (const above of getRelatives(c, i, aboveCoords)) {
+          if (!getTypeOfBlock(w, above).hasTag("replaceable")) {
+            continue;
           }
 
-          // if on non-seed solid ground or near plant, try grow
-          const belowMatI = below[0].getTypeIndexOfBlock(below[1]);
-          if (nearPlant || (belowMatI !== seedMat && w.getBlockType(belowMatI).hasTag("solid"))) {
-            // if solids above, abort & become plant
-            if (relativeHasTag(w, c, i, 0, 1, "solid")) {
-              w.tryMutateTypeOfBlock(c, i, plantMat);
-              return;
-            }
-
-            // proceed with trying to grow
-            for (const above of getRelatives(c, i, aboveCoords)) {
-              if (!getTypeOfBlock(w, above).hasTag("gas")) {
-                continue;
-              }
-
-              if (w.getRandomFloat() > (nearPlant ? 0.6 : 0)) {
-                trySetBlock(w, above, seedMat);
-                w.tryMutateTypeOfBlock(c, i, plantMat);
-              } else if (w.getRandomFloat() > 0.7) {
-                w.trySetTypeOfBlock(c, i, flowerMat);
-              }
+          if (w.getRandomFloat() > (nearPlant ? 0.6 : 0)) {
+            trySetBlock(w, above, seedMat);
+            w.tryMutateTypeOfBlock(c, i, plantMat);
+          } else {
+            if (w.getRandomFloat() > 0.4) {
+              w.trySetTypeOfBlock(c, i, flowerMat);
+            }else{
+              w.trySetTypeOfBlock(c, i, plantMat);
             }
           }
-        })(w, c, i);
+        }
+      }else{
+        updateFall(updateStatic)(w,c,i);
       }
     };
   },
-  randomTickBehaviorGen: (world_init) => {
-    const flowerMat = world_init.getBlockTypeIndex("Flower") ?? 0;
-    return (w, c, i) => w.tryMutateTypeOfBlock(c, i, flowerMat);
-  },
+  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
 }));
