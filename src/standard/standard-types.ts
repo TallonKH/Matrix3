@@ -406,7 +406,6 @@ standardBlockTypes.push(new BlockType({
   densityFunc: densityConstant(200),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
-    const clonerMat = world_init.getBlockTypeIndex("Cloner") ?? 0;
 
     return (w, c, i) => {
       const adjs = Array.from(getAdjacents(c, i));
@@ -428,8 +427,10 @@ standardBlockTypes.push(new BlockType({
       }
 
       // do cloning
-      for (const empty of empties) {
-        w.tryMutateTypeOfBlock(empty[0], empty[1], cloneables[~~(w.getRandomFloat() * cloneables.length)]);
+      if(cloneables.length > 0){
+        for (const empty of empties) {
+          w.tryMutateTypeOfBlock(empty[0], empty[1], cloneables[~~(w.getRandomFloat() * cloneables.length)]);
+        }
       }
     };
   },
