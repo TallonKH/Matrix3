@@ -11,6 +11,15 @@ export const NEIGHBOR_COORDS = Array.from([...CORNER_COORDS, ...ADJ_COORDS]);
 export const trySetBlock = (w: World, rel: [Chunk, number], typeIndex: number): boolean => w.trySetTypeOfBlock(rel[0], rel[1], typeIndex);
 export const tryMutateBlock = (w: World, rel: [Chunk, number], typeIndex: number): boolean => w.tryMutateTypeOfBlock(rel[0], rel[1], typeIndex);
 
+export const anyHaveTag = (types: Iterable<BlockType>, tag: string): boolean => {
+  for(const typ of types){
+    if(typ.hasTag(tag)){
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Returns `true` iff any provided type contains every specified tag
  */
@@ -45,6 +54,18 @@ export const allTagsPresent = (types: Iterable<BlockType>, tags: Array<string>):
 /**
 * Returns `true` iff all provided relative blocks have all specified tags.
 */
+export const allHaveTag = (types: Iterable<BlockType>, tag: string): boolean => {
+  for (const typ of types) {
+    if (typ.hasTag(tag)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+* Returns `true` iff all provided relative blocks have all specified tags.
+*/
 export const allHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
   for (const typ of types) {
     if (!tags.every((tag) => typ.hasTag(tag))) {
@@ -53,6 +74,19 @@ export const allHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>):
   }
   return true;
 };
+
+
+/**
+* Returns `true` iff the specified relative block has all specified tags.
+*/
+export const relativeHasTag = (w: World, c: Chunk, i: number, ox: number, oy: number, tag: string): boolean => {
+  const adj = c.getNearIndexI(i, ox, oy);
+  if (adj === null) {
+    return false;
+  }
+  return getTypeOfBlock(w, adj).hasTag(tag);
+};
+
 
 /**
 * Returns `true` iff the specified relative block has all specified tags.

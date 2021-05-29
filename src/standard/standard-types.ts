@@ -1,5 +1,5 @@
-import { Color, iterFilter } from "../library";
-import { allHaveAllTags, allTagsPresent, anyHaveAllTags, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasAllTags, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
+import { Color } from "../library";
+import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 import { DOWN, LEFT, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
@@ -29,7 +29,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // become lava if melted
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["melter"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "melter")) {
         w.tryMutateTypeOfBlock(c, i, lavaMat);
         return;
       }
@@ -49,7 +49,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // become mud if hydrated
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["hydrating"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "hydrating")) {
         w.tryMutateTypeOfBlock(c, i, mudMat);
         return;
       }
@@ -72,12 +72,12 @@ standardBlockTypes.push(new BlockType({
       const adjTypes = Array.from(getAdjacentTypes(w, c, i));
       // become glass if melted
       // TODO molten glass
-      if (anyHaveAllTags(adjTypes, ["melter"])) {
+      if (anyHaveTag(adjTypes, "melter")) {
         w.tryMutateTypeOfBlock(c, i, glassMat);
         return;
       }
       // become wet sand if hydrated
-      if (anyHaveAllTags(adjTypes, ["hydrating"])) {
+      if (anyHaveTag(adjTypes, "hydrating")) {
         w.tryMutateTypeOfBlock(c, i, wetSandMat);
         return;
       }
@@ -105,7 +105,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // dry out when heated
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "hot")) {
         w.tryMutateTypeOfBlock(c, i, sandMat);
         return;
       }
@@ -126,7 +126,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // dry out when heated
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "hot")) {
         w.tryMutateTypeOfBlock(c, i, dirtMat);
         return;
       }
@@ -178,11 +178,11 @@ standardBlockTypes.push(new BlockType({
   numbers: [["acid-resistance", 0.7]],
   tags: ["solid", "stable", "earth", "stone-based", "meltable"],
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
-    const lavaMat = world_init.getBlockTypeIndex("Glass") ?? 0;
+    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
 
     return (w, c, i) => {
       // become lava if melted
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["melter"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "melter")) {
         w.tryMutateTypeOfBlock(c, i, lavaMat);
         return;
       }
@@ -210,7 +210,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // if heated a lot, instantly become steam
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["boiler"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "boiler")) {
         w.tryMutateTypeOfBlock(c, i, steamMat);
         return;
       }
@@ -222,7 +222,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // if heated a bit, sometimes become steam
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["hot"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "hot")) {
         if (w.getRandomFloat() > 0.95) {
           w.tryMutateTypeOfBlock(c, i, steamMat);
         }
@@ -242,7 +242,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // if cooled, instantly become water
-      if (anyHaveAllTags(getAdjacentTypes(w, c, i), ["cold"])) {
+      if (anyHaveTag(getAdjacentTypes(w, c, i), "cold")) {
         w.tryMutateTypeOfBlock(c, i, waterMat);
         return;
       }
@@ -255,7 +255,7 @@ standardBlockTypes.push(new BlockType({
 
     return (w, c, i) => {
       // if not heated a lot, sometimes become water
-      if (!anyHaveAllTags(getAdjacentTypes(w, c, i), ["boiler"])) {
+      if (!anyHaveTag(getAdjacentTypes(w, c, i), "boiler")) {
         if (w.getRandomFloat() > 0.95) {
           w.tryMutateTypeOfBlock(c, i, waterMat);
         }
@@ -301,15 +301,30 @@ standardBlockTypes.push(new BlockType({
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.7]],
   tags: ["fluid", "liquid", "falling", "unstable", "stone-based", "hot", "boiler", "melter"],
-  tickBehaviorGen: () => updateFlow(0.02, updateStatic),
+  tickBehaviorGen: (world_init: World) => {
+    return (w,c,i) => {
+      const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
+
+      // if touching something wet, make self stone
+      if (w.getRandomFloat() > 0.95) {
+        if (anyHaveTag(getAdjacentTypes(w, c, i), "wet")) {
+          w.tryMutateTypeOfBlock(c, i, stoneMat);
+          return;
+        }
+      }
+
+      return updateFlow(0.02, updateStatic)(w,c,i);
+    };
+  },
   randomTickBehaviorGen: (world_init: World) => {
     const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
 
     return (w, c, i) => {
       // if not surrounded by high temperature, make self stone
       if (w.getRandomFloat() > 0.8) {
-        if (allHaveAllTags(getAdjacentTypes(w, c, i), ["melter"])) {
+        if (!allHaveTag(getAdjacentTypes(w, c, i), "melter")) {
           w.tryMutateTypeOfBlock(c, i, stoneMat);
+          return;
         }
       }
     };
@@ -484,7 +499,7 @@ standardBlockTypes.push(new BlockType({
           const belowMatI = below[0].getTypeIndexOfBlock(below[1]);
           if (nearPlant || (belowMatI !== seedMat && w.getBlockType(belowMatI).hasTag("solid"))) {
             // if solids above, abort & become plant
-            if (relativeHasAllTags(w, c, i, 0, 1, ["solid"])) {
+            if (relativeHasTag(w, c, i, 0, 1, "solid")) {
               w.tryMutateTypeOfBlock(c, i, plantMat);
               return;
             }
@@ -538,7 +553,7 @@ standardBlockTypes.push(new BlockType({
           const belowMatI = below[0].getTypeIndexOfBlock(below[1]);
           if (nearPlant || (belowMatI !== seedMat && w.getBlockType(belowMatI).hasTag("solid"))) {
             // if solids above, abort & become plant
-            if (relativeHasAllTags(w, c, i, 0, 1, ["solid"])) {
+            if (relativeHasTag(w, c, i, 0, 1, "solid")) {
               w.tryMutateTypeOfBlock(c, i, plantMat);
               return;
             }
