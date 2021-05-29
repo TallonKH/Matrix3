@@ -1,5 +1,5 @@
 import { Color } from "../library";
-import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
+import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 import { DOWN, LEFT, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
@@ -42,8 +42,8 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#7E572E"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
-  tags: ["solid", "unstable", "falling", "cascading", "soil", "earth", "grassable"],
-  tickBehaviorGen: () => updateCascade(updateStatic),
+  tags: ["solid", "unstable", "falling", "crumbling", "soil", "earth", "grassable"],
+  tickBehaviorGen: () => updateCrumble(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const mudMat = world_init.getBlockTypeIndex("Mud") ?? 0;
 
@@ -120,7 +120,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#472f18"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
-  tags: ["solid", "unstable", "falling", "soil", "earth", "wet"],
+  tags: ["solid", "unstable", "falling", "soil", "earth", "wet", "grassable"],
   tickBehaviorGen: (world_init: World): TickBehavior => {
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
@@ -141,18 +141,29 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#4eeb10"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
-  tags: ["solid", "unstable", "falling", "earth", "plant", "organic"],
-  tickBehaviorGen: () => updateFall(updateStatic),
-  randomTickBehaviorGen: (world_init: World): TickBehavior => {
+  tags: ["solid", "unstable", "falling", "earth", "plant", "organic", "soil"],
+  tickBehaviorGen: (world_init) => {
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
-    const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
 
     return (w, c, i) => {
-      const adjs = Array.from(getAdjacents(c, i));
+      // if lacking air or soil, become dirt sometimes
+      if (w.getRandomFloat() > 0.9 && !allTagsPresent(Array.from(getAdjacentTypes(w,c,i)), ["soil", "breathable"])) {
+        w.tryMutateTypeOfBlock(c, i, dirtMat);
+        return;
+      }
+
+      updateFall(updateStatic)(w, c, i);
+    };
+  },
+  randomTickBehaviorGen: (world_init: World): TickBehavior => {
+    const grassMat = world_init.getBlockTypeIndex("Grass") ?? 0;
+    const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
+    return (w, c, i) => {
+      const adjs = Array.from(getNeighbors(c, i));
       const typs = Array.from(getTypesOfBlocks(w, adjs));
 
-      // if lacking air or soil, become dirt
-      if (!allTagsPresent(typs, ["breathable", "soil"])) {
+      // if lacking air or soil, become dirt (do this in randomTick also with no random chance)
+      if (!allTagsPresent(Array.from(typs), ["soil", "breathable"])) {
         w.tryMutateTypeOfBlock(c, i, dirtMat);
         return;
       }
@@ -162,7 +173,7 @@ standardBlockTypes.push(new BlockType({
         if (typs[i].hasTag("grassable")) {
           const adj = adjs[i];
           // make sure candidate is has air & soil
-          if (allTagsPresent(getAdjacentTypes(w, adj[0], adj[1]), ["breathable", "soil"])) {
+          if (allTagsPresent(Array.from(getAdjacentTypes(w, adj[0], adj[1])), ["soil", "breathable"])) {
             w.tryMutateTypeOfBlock(adj[0], adj[1], grassMat);
           }
         }
@@ -302,7 +313,7 @@ standardBlockTypes.push(new BlockType({
   numbers: [["acid-resistance", 0.7]],
   tags: ["fluid", "liquid", "falling", "unstable", "stone-based", "hot", "boiler", "melter"],
   tickBehaviorGen: (world_init: World) => {
-    return (w,c,i) => {
+    return (w, c, i) => {
       const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
 
       // if touching something wet, make self stone
@@ -313,7 +324,7 @@ standardBlockTypes.push(new BlockType({
         }
       }
 
-      return updateFlow(0.02, updateStatic)(w,c,i);
+      return updateFlow(0.02, updateStatic)(w, c, i);
     };
   },
   randomTickBehaviorGen: (world_init: World) => {
@@ -427,7 +438,7 @@ standardBlockTypes.push(new BlockType({
       }
 
       // do cloning
-      if(cloneables.length > 0){
+      if (cloneables.length > 0) {
         for (const empty of empties) {
           w.tryMutateTypeOfBlock(empty[0], empty[1], cloneables[~~(w.getRandomFloat() * cloneables.length)]);
         }

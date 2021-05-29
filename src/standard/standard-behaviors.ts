@@ -35,7 +35,7 @@ export const anyHaveAllTags = (types: Iterable<BlockType>, tags: Array<string>):
 /**
  * Returns `true` iff every specified tag occurs at least once in at least one provided type
  */
-export const allTagsPresent = (types: Iterable<BlockType>, tags: Array<string>): boolean => {
+export const allTagsPresent = (types: Array<BlockType>, tags: Array<string>): boolean => {
   for (const tag of tags) {
     let found = false;
     for (const typ of types) {
