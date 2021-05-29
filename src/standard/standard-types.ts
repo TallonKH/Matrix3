@@ -233,7 +233,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#7227ab"),
   densityFunc: densityConstant(200),
   numbers: [["acid-resistance", 0]],
-  tags: ["solid", "stable", "goo-immune", "virus-immune"],
+  tags: ["solid", "stable", "goo-immune", "virus-immune", "uncloneable"],
   tickBehaviorGen: (world_init) => {
     const coaterMat = world_init.getBlockTypeIndex("Coater") ?? 0;
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -241,12 +241,6 @@ standardBlockTypes.push(new BlockType({
     return (w, c, i) => {
       const adjs = Array.from(getAdjacents(c, i));
       const typs = Array.from(getTypesOfBlocks(w, adjs));
-      // const typs = Array.from(getTypesOfBlocks(w, adjs));
-      // to prevent stupidity, kill if near void or cloner
-      if (anyHaveTag(typs, "void") || anyHaveTag(typs, "cloner")) {
-        w.tryMutateTypeOfBlock(c, i, airMat);
-        return;
-      }
 
       // if lacking air or surface, become air
       if (w.getRandomFloat() > 0.2 && !allTagsPresent(typs, ["unbreathable", "breathable"])) {
@@ -261,8 +255,8 @@ standardBlockTypes.push(new BlockType({
         if (getTypeOfBlock(w, nei).hasTag("replaceable")) {
           const neisTypes = Array.from(getAdjacentTypes(w, nei[0], nei[1]));
 
-          // to prevent stupidity, do not generate near void or cloner
-          if (anyHaveTag(neisTypes, "void") || anyHaveTag(neisTypes, "cloner")) {
+          // to prevent stupidity, do not generate near void
+          if (anyHaveTag(neisTypes, "void")) {
             continue;
           }
 
@@ -527,7 +521,7 @@ standardBlockTypes.push(new BlockType({
           empties.push(adj);
         } else if (typ.hasTag("cloner-killable")) {
           w.tryMutateTypeOfBlock(adj[0], adj[1], airMat);
-        } else {
+        } else if (!typ.hasTag("uncloneable")) {
           cloneables.push(adj[0].getTypeIndexOfBlock(adj[1]));
         }
       }

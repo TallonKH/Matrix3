@@ -4,6 +4,7 @@ import MatrixServer from "../server/server";
 import { standardBlockShaders } from "../standard/standard-shaders";
 import { standardBlockTypes } from "../standard/standard-types";
 import { CheckerGen } from "../standard/standard-terrain-gen";
+import { NPoint } from "../lib/NLib/npoint";
 
 const parts: [MatrixServer | null, MatrixClient | null] = [null, null];
 
@@ -250,3 +251,5 @@ buttons.sort((a,b) => a.innerHTML.localeCompare(b.innerHTML));
 for(const button of buttons){
   blocktypeContainer.appendChild(button);
 }
+
+mainDisplay.setViewOrigin(new NPoint(0,640));
