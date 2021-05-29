@@ -27,6 +27,16 @@ standardBlockShaders.set("Moss", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("Coater", {
+  min: Color.fromHex("#490091"),
+  mid1: Color.fromHex("#7227ab"),
+  mid2: Color.fromHex("#9300bf"),
+  max: Color.fromHex("#38b0b0"),
+  mid2x: 0.98,
+  timeFactor1: 1,
+  timeScale1: 0.001,
+});
+
 standardBlockShaders.set("Dirt", {
   min: Color.fromHex("#6D4F30"),
   max: Color.fromHex("#836242"),
