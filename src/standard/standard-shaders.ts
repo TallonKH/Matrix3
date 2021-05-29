@@ -4,8 +4,8 @@ import { Color } from "../library";
 export const standardBlockShaders: Map<string, BlockShaderFactorMap> = new Map();
 
 standardBlockShaders.set("Air", {
-  min: Color.fromHex("#e6f2ff"),
-  max: Color.fromHex("#e6f2ff"),
+  min: Color.fromHex("#d2e9ff"),
+  max: Color.fromHex("#d2e9ff"),
 });
 
 standardBlockShaders.set("Gravel", {
