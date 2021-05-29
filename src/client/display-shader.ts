@@ -104,47 +104,46 @@ function perlin(x: number, y: number, z: number): number {
 }
 
 function kernelFunction(this: IKernelFunctionThis, args: [number, number, number, number, number], factors: BlockShaderFactorList[], blockData: Uint16Array): void {
-  // const x = this.thread.x + (args[2] * args[0]);
-  // const y = this.thread.y + (args[3] * args[0]);
   const i = this.thread.x + (this.thread.y << args[1]);
-  const time = args[4];
+  const time = ~~args[4];
 
   const type = blockData[i] & 0xff;
   const id = (blockData[i] & 0xff00) >> 8;
 
   const factor =
-    (factors[type][14] * (Math.sin(((time * factors[type][15]) % (Math.PI * 2)) + id * factors[type][16]) + 1) / 2) +
-    (factors[type][17] * (Math.sin(((time * factors[type][18]) % (Math.PI * 2)) + id * factors[type][19]) + 1) / 2);
+    ((factors[type][14] * (Math.sin(((factors[type][15] * time) % 6.2831853) + id * factors[type][16]) + 1) / 2) +
+      (factors[type][17] * (Math.sin(((factors[type][18] * time) % 6.2831853) + id * factors[type][19]) + 1) / 2));
   const mid1x = factors[type][12];
   const mid2x = factors[type][13];
   this.color(
     lerp4(
       factors[type][0],   // min r
-      factors[type][1],  // mid1 r
-      factors[type][2],  // mid2 r
+      factors[type][1],   // mid1 r
+      factors[type][2],   // mid2 r
       factors[type][3],   // max r
       mid1x, mid2x, factor),
     lerp4(
       factors[type][4],   // min g
-      factors[type][5],  // mid1 g
-      factors[type][6],  // mid2 g
+      factors[type][5],   // mid1 g
+      factors[type][6],   // mid2 g
       factors[type][7],   // max g
       mid1x, mid2x, factor),
     lerp4(
       factors[type][8],   // min b
-      factors[type][9],  // mid1 b
+      factors[type][9],   // mid1 b
       factors[type][10],  // mid2 b
-      factors[type][11],   // max b
+      factors[type][11],  // max b
       mid1x, mid2x, factor),
     1
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export default function getShaderKernel() {
   return gpu.createKernel<typeof kernelFunction>(kernelFunction)
     .setFunctions([
       lerp,
       lerp4,
       // f3x2m1, rand1u1, rand3u1, rand3vec3, dot3, perlinCorner, perlin,
-    ]).setGraphical(true);
+    ]).setGraphical(true);//.setLoopMaxIterations(0);
 }

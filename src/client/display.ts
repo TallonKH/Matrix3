@@ -238,7 +238,7 @@ export default class GridDisplay {
           continue;
         }
         this.shaderKernel(
-          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, limitedTimeMillis],
+          [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, limitedTimeMillis * 1.01],
           this.blockShaders,
           chunkData.data,
           // chunkData.types,
