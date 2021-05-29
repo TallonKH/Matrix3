@@ -25,7 +25,7 @@ standardBlockTypes.push(new BlockType({
   tags: ["solid", "unstable", "unbreathable", "falling", "crumbling", "stone-based", "earth", "meltable"],
   tickBehaviorGen: () => updateCrumble(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
-    const lavaMat = world_init.getBlockTypeIndex("Glass") ?? 0;
+    const lavaMat = world_init.getBlockTypeIndex("Lava") ?? 0;
 
     return (w, c, i) => {
       // become lava if melted

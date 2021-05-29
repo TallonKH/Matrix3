@@ -56,7 +56,7 @@ export const allTagsPresent = (types: Array<BlockType>, tags: Array<string>): bo
 */
 export const allHaveTag = (types: Iterable<BlockType>, tag: string): boolean => {
   for (const typ of types) {
-    if (typ.hasTag(tag)) {
+    if (!typ.hasTag(tag)) {
       return false;
     }
   }
