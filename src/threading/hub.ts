@@ -162,6 +162,7 @@ mainDisplay.canvas.addEventListener("mousedown", (e) => {
       mouse2Down = true;
       break;
   }
+  drawFunc(e);
 });
 document.addEventListener("mouseup", (e) => {
   switch (e.button) {
@@ -179,7 +180,7 @@ mainDisplay.canvas.oncontextmenu = (e) => {
   return false;
 };
 
-mainDisplay.canvas.addEventListener("mousemove", (e) => {
+const drawFunc = (e: MouseEvent) => {
   if (mouse1Down || mouse2Down) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
     const drawMat = (mouse1Down && mouse2Down)
@@ -205,6 +206,10 @@ mainDisplay.canvas.addEventListener("mousemove", (e) => {
       server.forwardSetBlockRequests(requests);
     }
   }
+};
+
+mainDisplay.canvas.addEventListener("mousemove", (e) => {
+  drawFunc(e);
 });
 
 const blocktypeContainer = document.getElementById("block-type-list");
