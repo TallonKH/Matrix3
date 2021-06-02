@@ -14,6 +14,7 @@ export const CHUNK_SIZEm1 = CHUNK_SIZE - 1;
  * Chunk size squared
  */
 export const CHUNK_SIZE2 = CHUNK_SIZE * CHUNK_SIZE;
+export const CHUNK_MODMASK2 = CHUNK_SIZE2 - 1;
 /**
  * Chunk size squared, minus 1
  */

@@ -9,8 +9,8 @@ import { NPoint, PointStr } from "./lib/NLib/npoint";
 export default abstract class WorldHandler {
   private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
 
-  public sendChunkData(coord: NPoint, data: Uint16Array): void {
-    this.handleReceivedChunkData(coord, data);
+  public sendChunkData(coord: NPoint, data: Uint16Array, lighting: Float32Array): void {
+    this.handleReceivedChunkData(coord, data, lighting);
   }
 
   public requestChunkLoads(coords: Array<[number, number]>): void {
@@ -49,5 +49,5 @@ export default abstract class WorldHandler {
 
   protected abstract forwardChunkUnloadRequests(toUnloads: Array<[number, number]>): void;
 
-  public abstract handleReceivedChunkData(coord: NPoint, data: Uint16Array): void;
+  public abstract handleReceivedChunkData(coord: NPoint, data: Uint16Array, lighting: Float32Array): void;
 }

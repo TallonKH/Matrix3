@@ -1,9 +1,11 @@
+import { Texture, IKernelRunShortcutBase, KernelOutput } from "gpu.js";
 import { NPoint, PointStr } from "../lib/NLib/npoint";
 import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, shuffleArray } from "../library";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1 } from "../matrix-common";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2 } from "../matrix-common";
 import WorldHandler from "../world-handler";
+import getLightKernel from "./light-shader";
 import BlockType from "./matrix-blocktype";
-import Chunk, { BlockData, UpdateFlags } from "./matrix-chunk";
+import Chunk, { BlockData, BlockLightFactorList, UpdateFlags } from "./matrix-chunk";
 import WorldGenerator from "./matrix-worldgen";
 
 /**
@@ -14,8 +16,8 @@ const bt_missing: BlockType = new BlockType({
   color: new Color(1, 0, 1),
 });
 
-const chunkImporter = new TextEncoder();
-const chunkExporter = new TextDecoder("utf-16");
+// const chunkImporter = new TextEncoder();
+// const chunkExporter = new TextDecoder("utf-16");
 
 /**
  * fill the world with bt_missing
@@ -39,11 +41,14 @@ export default class World {
   private worldGen?: WorldGenerator;
   private readonly blockTypes: Array<BlockType> = [];
   private readonly blockTypeMap: Map<string, number> = new Map();
+  private readonly blockTypeLightFactors: Array<BlockLightFactorList> = [];
   private time = 0;
   private rand = 1;
   private initialized = false;
   public readonly handler: WorldHandler;
   private randomTicksPerTick = 64;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private lightKernel: any;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
     this.handler = handler;
@@ -67,6 +72,8 @@ export default class World {
     for (const blockType of this.blockTypes) {
       blockType.init(this);
     }
+
+    this.lightKernel = getLightKernel(CHUNK_BITSHIFT);
 
     this.worldGen = this.worldGenGen(this);
     this.worldGen.runInit();
@@ -196,7 +203,7 @@ export default class World {
   /**
    * Logic update for all pending blocks
    */
-  public performGlobalTick(): void {
+  public performGlobalBlockTick(): void {
     if (!this.initialized) {
       throw "Attempted global tick before initialization";
     }
@@ -252,12 +259,12 @@ export default class World {
     }
 
     // forward changes to server/handler
-    for (const chunk of pendingChunks) {
+    for (const chunk of loadedChunks) {
       // this.handler.sendChunkData(chunk.coord, {
       //   types: chunk.getBlockTypes(),
       //   ids: chunk.getBlockIds(),
       // });
-      this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
+      this.handler.sendChunkData(chunk.coord, chunk.getBlockData(), chunk.lighting);
     }
 
     // apply/flush the pendingPending buffer
@@ -270,6 +277,16 @@ export default class World {
     this.time++;
   }
 
+  public performLightTick(): void {
+    if (this.lightKernel === undefined) {
+      throw "no light kernel!";
+    }
+
+    for (const [co, chunk] of this.loadedChunks) {
+      chunk.lighting = this.lightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors);
+      // throw "stop";
+    }
+  }
   /**
    * get a BlockType's index from its name
    */
@@ -307,6 +324,15 @@ export default class World {
     const blockId: number = this.blockTypes.length;
     this.blockTypeMap.set(type.name, blockId);
     this.blockTypes.push(type);
+
+    this.blockTypeLightFactors.push([
+      ~~(type.emission.r * 255), ~~(type.emission.g * 255), ~~(type.emission.b * 255),
+      type.opacity.r, type.opacity.g, type.opacity.b,
+      ~~(type.sunEmission * 255),
+      type.sunOpacity,
+      type.sunDiffusion.r, type.sunDiffusion.g, type.sunDiffusion.b,
+    ]);
+    
     return blockId;
   }
 
@@ -377,7 +403,7 @@ export default class World {
       }
     }
 
-    this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
+    this.handler.sendChunkData(chunk.coord, chunk.getBlockData(), chunk.lighting);
     return chunk;
   }
 

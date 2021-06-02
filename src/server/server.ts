@@ -12,7 +12,7 @@ export default class MatrixServer extends WorldHandler {
   public handleReceivedChunkData;
 
   constructor(
-    handleReceivedChunkData: (coord: NPoint, data: Uint16Array) => void,
+    handleReceivedChunkData: (coord: NPoint, data: Uint16Array, lighting: Float32Array) => void,
     blockTypes: Array<BlockType>,
     worldGenGen: (world: World) => WorldGenerator,
   ) {
@@ -55,7 +55,11 @@ export default class MatrixServer extends WorldHandler {
   }
 
   public performGlobalTick(): void {
-    this.world.performGlobalTick();
+    this.world.performGlobalBlockTick();
+  }
+
+  public performLightTick(): void {
+    this.world.performLightTick();
   }
 
   // index, type id

@@ -3,9 +3,14 @@ import { Color } from "../library";
 
 export const standardBlockShaders: Map<string, BlockShaderFactorMap> = new Map();
 
-standardBlockShaders.set("Air", {
+standardBlockShaders.set("Air (Bright)", {
   min: Color.fromHex("#d2e9ff"),
   max: Color.fromHex("#d2e9ff"),
+});
+
+standardBlockShaders.set("Air", {
+  min: Color.fromHex("#c0d7ed"),
+  max: Color.fromHex("#c2d9ef"),
 });
 
 standardBlockShaders.set("Gravel", {
@@ -175,6 +180,28 @@ standardBlockShaders.set("Glass", {
   min: Color.fromHex("#e9f3f5"),
   max: Color.fromHex("#f5fdff"),
   timeFactor1: 1,
+});
+
+standardBlockShaders.set("Hotstone", {
+  min: Color.fromHex("#8a4b45"),
+  mid2: Color.fromHex("#915d59"),
+  max: Color.fromHex("#d95448"),
+  mid2x: 0.98,
+  timeFactor1: 0.95,
+  timeFactor2: 0.05,
+  timeScale2: 0.002,
+  timeOffsetFactor2: 0.02,
+});
+
+standardBlockShaders.set("Coldstone", {
+  min: Color.fromHex("#456d8a"),
+  mid2: Color.fromHex("#607d91"),
+  max: Color.fromHex("#60b7d6"),
+  mid2x: 0.98,
+  timeFactor1: 0.95,
+  timeFactor2: 0.05,
+  timeScale2: 0.002,
+  timeOffsetFactor2: 0.02,
 });
 
 

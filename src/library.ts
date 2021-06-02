@@ -34,6 +34,9 @@ export class Color {
   public readonly g: number;
   public readonly b: number;
 
+  /**
+   * values are from 0 to 1
+   */
   constructor(r: number, g: number, b: number) {
     this.r = r;
     this.g = g;

@@ -9,8 +9,8 @@ import { NPoint } from "../lib/NLib/npoint";
 const parts: [MatrixServer | null, MatrixClient | null] = [null, null];
 
 const server: MatrixServer = new MatrixServer(
-  (coord, chunkData) => {
-    parts[1]?.sendChunkData(coord, chunkData);
+  (coord, chunkData, lighting) => {
+    parts[1]?.sendChunkData(coord, chunkData, lighting);
   },
   standardBlockTypes,
   (world) => new CheckerGen(world)
@@ -46,7 +46,12 @@ displayContainer.appendChild(mainDisplay.canvas);
 
 mainDisplay.startDrawLoop();
 server.performGlobalTick();
-window.setInterval(() => server.performGlobalTick(), ~~(1000 / 30));
+
+window.setInterval(() => {
+  server.performGlobalTick();
+  // }
+  server.performLightTick();
+}, ~~(1000 / 20));
 // window.setTimeout(() => server.performGlobalTick(), 500);
 
 let leftKeyDown = false;
@@ -252,9 +257,9 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   };
 }
 
-buttons.sort((a,b) => a.innerHTML.localeCompare(b.innerHTML));
-for(const button of buttons){
+buttons.sort((a, b) => a.innerHTML.localeCompare(b.innerHTML));
+for (const button of buttons) {
   blocktypeContainer.appendChild(button);
 }
 
-mainDisplay.setViewOrigin(new NPoint(0,640));
+mainDisplay.setViewOrigin(new NPoint(0, 640));
