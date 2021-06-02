@@ -63,8 +63,8 @@ let shiftKeyDown = false;
 
 const panSpeed = -64;
 let drawRadius = 3;
-let drawType1 = 4;
-let drawType2 = 1;
+let drawType1 = standardBlockTypes.findIndex((bt) => bt.name === "Dirt") + 1;
+let drawType2 = standardBlockTypes.findIndex((bt) => bt.name === "Air") + 1;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {

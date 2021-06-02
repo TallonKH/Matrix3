@@ -3,7 +3,7 @@ import { Color } from "../library";
 
 export const standardBlockShaders: Map<string, BlockShaderFactorMap> = new Map();
 
-standardBlockShaders.set("Air (Bright)", {
+standardBlockShaders.set("Sky", {
   min: Color.fromHex("#d2e9ff"),
   max: Color.fromHex("#d2e9ff"),
 });
@@ -180,6 +180,23 @@ standardBlockShaders.set("Glass", {
   min: Color.fromHex("#e9f3f5"),
   max: Color.fromHex("#f5fdff"),
   timeFactor1: 1,
+});
+
+standardBlockShaders.set("Lamp", {
+  min: Color.fromHex("#ffffdf"),
+  max: Color.fromHex("#ffffff"),
+  timeFactor1: 1,
+  timeScale1: 0.001,
+});
+
+
+standardBlockShaders.set("Sunstone", {
+  min: Color.fromHex("#ffdf5f"),
+  mid1: Color.fromHex("#ffef9f"),
+  max: Color.fromHex("#ffffcf"),
+  timeFactor1: 1,
+  mid1x: 0.01,
+  timeScale1: 0.0002,
 });
 
 standardBlockShaders.set("Hotstone", {

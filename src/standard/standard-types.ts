@@ -8,14 +8,13 @@ import Chunk from "../simulation/matrix-chunk";
 export const standardBlockTypes: Array<BlockType> = [];
 
 standardBlockTypes.push(new BlockType({
-  name: "Air (Bright)",
+  name: "Sky",
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   numbers: [["acid-resistance", 1]],
   tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable", "non-sky-blocking"],
   tickBehaviorGen: (world_init) => {
-    const airBMat = world_init.getBlockTypeIndex("Air (Bright)") ?? 0;
-    const airDMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
 
     return (w, c, i) => {
       const above = c.getNearIndexI(i, 0, 1);
@@ -23,7 +22,7 @@ standardBlockTypes.push(new BlockType({
         return;
       }
       if (!relativeHasTag(w, c, i, 0, 1, "non-sky-blocking")) {
-        w.tryMutateTypeOfBlock(c, i, airDMat);
+        w.tryMutateTypeOfBlock(c, i, airMat);
       } else {
         updateFlow(1, updateStatic)(w, c, i);
       }
@@ -35,20 +34,20 @@ standardBlockTypes.push(new BlockType({
 
 standardBlockTypes.push(new BlockType({
   name: "Air",
-  color: Color.fromHex("#aaaaaa"),
+  color: Color.fromHex("#eeeeee"),
   densityFunc: densityConstant(10),
   numbers: [["acid-resistance", 1]],
   tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable"],
   tickBehaviorGen: (world_init) => {
-    const airBMat = world_init.getBlockTypeIndex("Air (Bright)") ?? 0;
+    const skyMat = world_init.getBlockTypeIndex("Sky") ?? 0;
 
     return (w, c, i) => {
       const above = c.getNearIndexI(i, 0, 1);
       if (above === null) {
         return;
       }
-      if (above[0].getTypeIndexOfBlock(above[1]) === airBMat) {
-        w.tryMutateTypeOfBlock(c, i, airBMat);
+      if (above[0].getTypeIndexOfBlock(above[1]) === skyMat) {
+        w.tryMutateTypeOfBlock(c, i, skyMat);
       } else {
         updateFlow(1, updateStatic)(w, c, i);
       }
@@ -102,7 +101,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#f0d422"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.6]],
-  tags: ["solid", "unstable", "unbreathable", "falling", "cascading", "sandy", "earth", "meltable"],
+  tags: ["solid", "unstable", "unbreathable", "falling", "cascading", "sandy", "earth", "meltable", "non-sky-blocking"],
   tickBehaviorGen: () => updateCascade(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const glassMat = world_init.getBlockTypeIndex("Glass") ?? 0;
@@ -133,6 +132,40 @@ standardBlockTypes.push(new BlockType({
   tags: ["solid", "stable", "unbreathable", "virus-immune"],
   tickBehaviorGen: () => updateStatic,
   opacity: new Color(0.99, 0.99, 0.99),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Lamp",
+  color: Color.fromHex("#ffffdf"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "unbreathable"],
+  tickBehaviorGen: () => updateStatic,
+  opacity: new Color(0.99, 0.99, 0.99),
+  emission: Color.fromHex("#eeeeee"),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Sunstone",
+  color: Color.fromHex("#ffef6f"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "unbreathable", "non-sky-blocking"],
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const skyMat = world_init.getBlockTypeIndex("Sky") ?? 0;
+    
+    return (w, c, i) => {
+      const below = c.getNearIndexI(i, 0, -1);
+      if (below !== null) {
+        if (below[0].getTypeIndexOfBlock(below[1]) === airMat) {
+          w.tryMutateTypeOfBlock(c, i, skyMat);
+        }
+      }
+    }
+  },
+  opacity: new Color(0.99, 0.99, 0.99),
+  emission: Color.fromHex("#ffffdf"),
 }));
 
 standardBlockTypes.push(new BlockType({
