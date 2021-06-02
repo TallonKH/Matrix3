@@ -50,7 +50,7 @@ server.performGlobalTick();
 window.setInterval(() => {
   server.performGlobalTick();
   // }
-  server.performLightTick();
+  // server.performLightTick();
   server.performLightTick();
 }, ~~(1000 / 20));
 // window.setTimeout(() => server.performGlobalTick(), 500);
@@ -268,3 +268,5 @@ for (const button of buttons) {
 }
 
 mainDisplay.setViewOrigin(new NPoint(0, 640));
+
+// window.setTimeout(() => server.performLightTick(), 400);

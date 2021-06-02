@@ -56,7 +56,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 16;
+  private pixelsPerBlock = 8;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;

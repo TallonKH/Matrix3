@@ -48,7 +48,8 @@ export default class World {
   public readonly handler: WorldHandler;
   private randomTicksPerTick = 64;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private lightKernel: any;
+  private pipelineLightKernel: any;
+  private outputLightKernel: any;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
     this.handler = handler;
@@ -73,7 +74,8 @@ export default class World {
       blockType.init(this);
     }
 
-    this.lightKernel = getLightKernel(CHUNK_BITSHIFT);
+    this.pipelineLightKernel = getLightKernel(CHUNK_BITSHIFT).setPipeline(true);
+    this.outputLightKernel = getLightKernel(CHUNK_BITSHIFT);
 
     this.worldGen = this.worldGenGen(this);
     this.worldGen.runInit();
@@ -278,13 +280,15 @@ export default class World {
   }
 
   public performLightTick(): void {
-    if (this.lightKernel === undefined) {
+    if (this.pipelineLightKernel === undefined || this.outputLightKernel === undefined) {
       throw "no light kernel!";
     }
 
     for (const [co, chunk] of this.loadedChunks) {
-      chunk.lighting = this.lightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors);
-      // throw "stop";
+      chunk.lighting = this.outputLightKernel(
+        this.pipelineLightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors),
+        chunk.getBlockData(),
+        this.blockTypeLightFactors);
     }
   }
   /**
@@ -332,7 +336,7 @@ export default class World {
       type.sunOpacity,
       type.sunDiffusion.r, type.sunDiffusion.g, type.sunDiffusion.b,
     ]);
-    
+
     return blockId;
   }
 

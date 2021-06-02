@@ -101,9 +101,10 @@ export default function getLightKernel(chunk_bitshift: number) {
     withinChunk,
     getUpLight,
     getAdjacentLight,
-  ]).setOutput([chunksize * chunksize]).setConstants<IConstants>({
-    chunk_bitshift: chunk_bitshift,
-    chunk_modmask: chunksize - 1,
-    chunk_size: chunksize,
-  });
+  ]).setOutput([chunksize * chunksize])
+    .setConstants<IConstants>({
+      chunk_bitshift: chunk_bitshift,
+      chunk_modmask: chunksize - 1,
+      chunk_size: chunksize,
+    });
 }
