@@ -61,7 +61,7 @@ let upKeyDown = false;
 let downKeyDown = false;
 let shiftKeyDown = false;
 
-let panSpeed = -10;
+const panSpeed = -64;
 let drawRadius = 3;
 let drawType1 = 4;
 let drawType2 = 1;
@@ -70,15 +70,19 @@ document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
       break;
     case "ArrowRight":
       rightKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
       break;
     case "ArrowUp":
       upKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
       break;
     case "ArrowDown":
       downKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
       break;
     case "Shift":
       shiftKeyDown = true;
@@ -136,26 +140,26 @@ document.addEventListener("keyup", (e) => {
   }
 });
 
-window.setInterval(() => {
-  if (shiftKeyDown) {
-    panSpeed = -100;
-  } else {
-    panSpeed = -10;
-  }
-  if (leftKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
-  }
-  if (rightKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
-  }
-  if (upKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
-  }
-  if (downKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
-  }
-  // console.log(mainDisplay.getViewOrigin());
-}, (1000 / 30));
+// window.setInterval(() => {
+//   if (shiftKeyDown) {
+//     panSpeed = -100;
+//   } else {
+//     panSpeed = -10;
+//   }
+//   if (leftKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
+//   }
+//   if (rightKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
+//   }
+//   if (upKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
+//   }
+//   if (downKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
+//   }
+//   // console.log(mainDisplay.getViewOrigin());
+// }, (1000 / 60));
 
 let mouse1Down = false;
 let mouse2Down = false;
