@@ -58,8 +58,8 @@ export default class MatrixServer extends WorldHandler {
     this.world.performGlobalBlockTick();
   }
 
-  public performLightTick(): void {
-    this.world.performLightTick();
+  public performGlobalLightTick(): void {
+    this.world.performGlobalLightTick();
   }
 
   // index, type id

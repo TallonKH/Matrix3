@@ -44,7 +44,7 @@ export default class Chunk {
   public blocksPendingPendingTick: Array<number> = [];
   public pendingClientChanges: Array<[number, number]> = [];
 
-  public lighting: Float32Array = new Float32Array(CHUNK_SIZE2);
+  public lighting: Float32Array;
 
   public neighbors: Array<Chunk | null> = Object.seal([null, null, null, null, null, null, null, null, this]);
   /**
@@ -71,10 +71,11 @@ export default class Chunk {
 
   public readonly coord: NPoint;
 
-  constructor(x: number, y: number, blockData?: Uint16Array, flags?: Uint8Array) {
+  constructor(x: number, y: number, blockData?: Uint16Array, flags?: Uint8Array, lighting? : Float32Array) {
     this.coord = new NPoint(x, y);
     this.blockData = blockData ?? new Uint16Array(CHUNK_SIZE2);
     this.flags = flags ?? new Uint8Array(CHUNK_SIZE2);
+    this.lighting = lighting ?? new Float32Array(CHUNK_SIZE2);
     if (flags !== undefined) {
       for (let i = 0; i < CHUNK_SIZE2; i++) {
         if (this.flags[i] & 1) {

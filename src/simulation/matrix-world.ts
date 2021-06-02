@@ -35,7 +35,7 @@ class MissingWorldGen extends WorldGenerator {
 
 export default class World {
   private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
-  private readonly storedChunks: Map<PointStr, [Uint16Array, Uint8Array]> = new Map();
+  private readonly storedChunks: Map<PointStr, [Uint16Array, Uint8Array, Float32Array]> = new Map();
   private readonly loadedChunks: Map<PointStr, Chunk> = new Map();
   private readonly worldGenGen: (world: World) => WorldGenerator;
   private worldGen?: WorldGenerator;
@@ -186,7 +186,7 @@ export default class World {
 
         // store
         if (chunk.needsSaving) {
-          this.storedChunks.set(ch, [chunk.getBlockData(), chunk.getBlockFlags()]);
+          this.storedChunks.set(ch, [chunk.getBlockData(), chunk.getBlockFlags(), chunk.lighting]);
         }
 
         // unload
@@ -279,17 +279,21 @@ export default class World {
     this.time++;
   }
 
-  public performLightTick(): void {
+  public performGlobalLightTick(): void {
+    for (const [co, chunk] of this.loadedChunks) {
+      this.performLightTick(chunk);
+    }
+  }
+
+  public performLightTick(chunk: Chunk): void {
     if (this.pipelineLightKernel === undefined || this.outputLightKernel === undefined) {
       throw "no light kernel!";
     }
 
-    for (const [co, chunk] of this.loadedChunks) {
-      chunk.lighting = this.outputLightKernel(
-        this.pipelineLightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors),
-        chunk.getBlockData(),
-        this.blockTypeLightFactors);
-    }
+    chunk.lighting = this.outputLightKernel(
+      this.pipelineLightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors),
+      chunk.getBlockData(),
+      this.blockTypeLightFactors);
   }
   /**
    * get a BlockType's index from its name
@@ -375,7 +379,7 @@ export default class World {
     let chunk;
     const storedData = this.storedChunks.get(ch);
     if (storedData !== undefined) {
-      chunk = new Chunk(x, y, storedData[0], storedData[1]);
+      chunk = new Chunk(x, y, storedData[0], storedData[1], storedData[2]);
     } else {
       // create new chunk
       chunk = new Chunk(x, y);
@@ -395,6 +399,7 @@ export default class World {
     // for (let i = 0; i < CHUNK_SIZE2; i++) {
     //   this.queueBlock(chunk, i);
     // }
+    this.performLightTick(chunk);
 
     this.loadedChunks.set(ch, chunk);
 
