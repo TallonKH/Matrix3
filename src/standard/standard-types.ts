@@ -12,7 +12,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   numbers: [["acid-resistance", 1]],
-  tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable"],
+  tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable", "non-sky-blocking"],
   tickBehaviorGen: (world_init) => {
     const airBMat = world_init.getBlockTypeIndex("Air (Bright)") ?? 0;
     const airDMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -22,7 +22,7 @@ standardBlockTypes.push(new BlockType({
       if (above === null) {
         return;
       }
-      if (above[0].getTypeIndexOfBlock(above[1]) !== airBMat) {
+      if (!relativeHasTag(w, c, i, 0, 1, "non-sky-blocking")) {
         w.tryMutateTypeOfBlock(c, i, airDMat);
       } else {
         updateFlow(1, updateStatic)(w, c, i);
@@ -396,7 +396,7 @@ standardBlockTypes.push(new BlockType({
   name: "Steam",
   color: Color.fromHex("#e3e3e3"),
   densityFunc: densityConstant(5),
-  tags: ["fluid", "gas", "unbreathable", "rising", "unstable", "wet", "water-based", "hot", "boiling"],
+  tags: ["fluid", "gas", "unbreathable", "rising", "unstable", "wet", "water-based", "hot", "boiling", "non-sky-blocking"],
   tickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
 

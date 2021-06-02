@@ -51,6 +51,7 @@ window.setInterval(() => {
   server.performGlobalTick();
   // }
   server.performLightTick();
+  server.performLightTick();
 }, ~~(1000 / 20));
 // window.setTimeout(() => server.performGlobalTick(), 500);
 

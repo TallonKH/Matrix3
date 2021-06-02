@@ -9,8 +9,8 @@ standardBlockShaders.set("Air (Bright)", {
 });
 
 standardBlockShaders.set("Air", {
-  min: Color.fromHex("#c0d7ed"),
-  max: Color.fromHex("#c2d9ef"),
+  min: Color.fromHex("#d2e9ff"),
+  max: Color.fromHex("#d2e9ff"),
 });
 
 standardBlockShaders.set("Gravel", {
