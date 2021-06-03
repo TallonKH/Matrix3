@@ -169,6 +169,12 @@ standardBlockShaders.set("Void", {
   timeScale2: 0.01,
 });
 
+standardBlockShaders.set("Scaffold", {
+  min: Color.fromHex("#d4b133"),
+  max: Color.fromHex("#e4c143"),
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("Steam", {
   min: Color.fromHex("#d0d0d0"),
   max: Color.fromHex("#e8e8e8"),

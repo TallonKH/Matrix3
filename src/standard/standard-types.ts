@@ -155,7 +155,7 @@ standardBlockTypes.push(new BlockType({
   tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
     const skyMat = world_init.getBlockTypeIndex("Sky") ?? 0;
-    
+
     return (w, c, i) => {
       const below = c.getNearIndexI(i, 0, -1);
       if (below !== null) {
@@ -505,10 +505,10 @@ standardBlockTypes.push(new BlockType({
   tickBehaviorGen: (world_init: World) => {
     return (w, c, i) => {
       const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
-      const adjTypes = Array.from(getAdjacentTypes(w,c,i));
+      const adjTypes = Array.from(getAdjacentTypes(w, c, i));
 
       // if touching something freezing, become stone
-      if(anyHaveTag(adjTypes, "freezer")){
+      if (anyHaveTag(adjTypes, "freezer")) {
         w.tryMutateTypeOfBlock(c, i, stoneMat);
         return;
       }
@@ -648,7 +648,6 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Void",
   color: Color.fromHex("#103"),
-  numbers: [["acid-resistance", 1]],
   tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable", "void", "unvoidable"],
   densityFunc: densityConstant(200),
   opacity: new Color(0.1, 0, 0.1),
@@ -661,6 +660,24 @@ standardBlockTypes.push(new BlockType({
         if (!getTypeOfBlock(w, adj).hasTag("invincible") && !getTypeOfBlock(w, adj).hasTag("unvoidable")) {
           w.tryMutateTypeOfBlock(adj[0], adj[1], airMat);
         }
+      }
+    };
+  },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Scaffold",
+  color: Color.fromHex("#d4b133"),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "unstable", "unbreathable", "seedable"],
+  densityFunc: densityConstant(150),
+  tickBehaviorGen: () => {
+    return (w, c, i) => {
+      if (!(
+        (relativeHasTag(w, c, i, -1, 0, "solid") && relativeHasTag(w, c, i, -1, -1, "solid")) ||
+        (relativeHasTag(w, c, i, 1, 0, "solid") && relativeHasTag(w, c, i, 1, -1, "solid"))
+      )) {
+        updateFall(updateStatic)(w, c, i);
       }
     };
   },
