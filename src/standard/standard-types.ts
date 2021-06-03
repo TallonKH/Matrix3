@@ -282,6 +282,7 @@ standardBlockTypes.push(new BlockType({
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.2]],
   tags: ["solid", "stable", "unbreathable", "plant", "organic", "hydrating", "seedable"],
+  emission: Color.fromHex("#103000"),
   tickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
 
@@ -326,7 +327,7 @@ standardBlockTypes.push(new BlockType({
   name: "Coater",
   color: Color.fromHex("#7227ab"),
   densityFunc: densityConstant(200),
-  emission: Color.fromHex("#c247bb"),
+  emission: Color.fromHex("#2b102a"),
   numbers: [["acid-resistance", 0]],
   tags: ["solid", "stable", "goo-immune", "virus-immune", "uncloneable"],
   tickBehaviorGen: (world_init) => {
@@ -456,6 +457,21 @@ standardBlockTypes.push(new BlockType({
       }
     };
   }
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Sinker",
+  color: Color.fromHex("#6d7d65"),
+  densityFunc: densityConstant(220),
+  emission: Color.fromHex("#8bc44f"),
+  numbers: [["acid-resistance", 0.9]],
+  tags: ["solid", "unbreathable", "falling", "unstable"],
+  tickBehaviorGen: () => (w,c,i) => {
+    if(!relativeHasTag(w,c,i,0,-1, "solid")){
+      updateFall(updateStatic)(w,c,i);
+    }
+  },
+  randomTickBehaviorGen: () => updateFall(updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -649,7 +665,7 @@ standardBlockTypes.push(new BlockType({
   name: "Void",
   color: Color.fromHex("#103"),
   tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable", "void", "unvoidable"],
-  densityFunc: densityConstant(200),
+  densityFunc: densityConstant(250),
   opacity: new Color(0.1, 0, 0.1),
   emission: Color.fromHex("#300060"),
   tickBehaviorGen: (world_init: World) => {

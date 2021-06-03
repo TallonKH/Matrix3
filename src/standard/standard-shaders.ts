@@ -87,6 +87,17 @@ standardBlockShaders.set("Water", {
   timeScale1: 0.001,
 });
 
+standardBlockShaders.set("Sinker", {
+  min: Color.fromHex("#6d7d65"),
+  mid2: Color.fromHex("#769970"),
+  max: Color.fromHex("#a0d19d"),
+  mid2x: 0.98,
+  timeFactor1: 0.95,
+  timeFactor2: 0.05,
+  timeScale2: 0.002,
+  timeOffsetFactor2: 0.02,
+});
+
 standardBlockShaders.set("Acid", {
   min: Color.fromHex("#26d15f"),
   max: Color.fromHex("#3deb54"),
