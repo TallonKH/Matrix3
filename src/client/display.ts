@@ -106,21 +106,31 @@ export default class GridDisplay {
 
     // add a resizeCallback for setting the canvas dimensions to the element dimensions
     this.resizeCallbacks.push(() => {
-      const rect = this.canvas.getBoundingClientRect();
-      this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
-      this.dimsCh = this.dims.divide1(CHUNK_SIZE);
-      this.canvas.width = this.dims.x;
-      this.canvas.height = this.dims.y;
-      this.recalcVisibleChunks();
+      this.updateDims();
     });
 
     this.shaderKernel = getShaderKernel().setOutput([CHUNK_SIZE, CHUNK_SIZE]);
+  }
+
+  private updateDims(): void {
+    const rect = this.canvas.getBoundingClientRect();
+    this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
+    this.dimsCh = this.dims.divide1(CHUNK_SIZE);
+    this.canvas.width = this.dims.x;
+    this.canvas.height = this.dims.y;
+    this.recalcVisibleChunks();
   }
 
   public setViewOrigin(pt: NPoint): void {
     this.viewOrigin = pt;
     this.viewOriginCh = pt.divide1(this.pixelsPerBlock * CHUNK_SIZE);
     this.recalcVisibleChunks();
+  }
+
+  public setPixelsPerBlock(val: number): void {
+    this.pixelsPerBlock = val;
+    this.setViewOrigin(this.viewOrigin);
+    this.updateDims();
   }
 
   public getViewOrigin(): NPoint {
@@ -141,7 +151,7 @@ export default class GridDisplay {
       return null;
     }
     return new NPoint(
-      Math.floor((x - this.viewOrigin.x) / this.pixelsPerBlock), 
+      Math.floor((x - this.viewOrigin.x) / this.pixelsPerBlock),
       Math.floor((- y + this.viewOrigin.y) / this.pixelsPerBlock));
   }
 

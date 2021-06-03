@@ -1,3 +1,6 @@
+import { GPU } from "gpu.js";
+import { lerp } from "./lib/NLib/nmath";
+
 // various common derivations of chunk size
 export const CHUNK_BITSHIFT = 6;
 export const CHUNK_SIZE = 1 << CHUNK_BITSHIFT;
@@ -19,3 +22,6 @@ export const CHUNK_MODMASK2 = CHUNK_SIZE2 - 1;
  * Chunk size squared, minus 1
  */
 export const CHUNK_SIZE2m1 = (CHUNK_SIZE * CHUNK_SIZE) - 1;
+
+export const gpu = new GPU();
+gpu.addFunction(lerp);

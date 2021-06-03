@@ -1,10 +1,7 @@
-import { GPU, IKernelFunctionThis } from "gpu.js";
+import { IKernelFunctionThis } from "gpu.js";
+import { lerp } from "../lib/NLib/nmath";
+import { gpu } from "../matrix-common";
 import { BlockShaderFactorList } from "./display";
-const gpu = new GPU();
-
-function lerp(a: number, b: number, x: number) {
-  return a + (b - a) * x;
-}
 
 /**
  * interpolate between 4 values: (x=0,y=a), (x=bt,y=b), (x=ct,y=c), (x=1,y=d)
@@ -64,8 +61,6 @@ function shaderFunction(this: IKernelFunctionThis, args: [number, number, number
 export default function getShaderKernel() {
   return gpu.createKernel<typeof shaderFunction>(shaderFunction)
     .setFunctions([
-      lerp,
       lerp4,
-      // f3x2m1, rand1u1, rand3u1, rand3vec3, dot3, perlinCorner, perlin,
-    ]).setGraphical(true);//.setLoopMaxIterations(0);
+    ]).setGraphical(true);
 }

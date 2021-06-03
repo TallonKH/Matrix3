@@ -1,7 +1,7 @@
-import { GPU, IKernelFunctionThis } from "gpu.js";
+import { IKernelFunctionThis } from "gpu.js";
+import { lerp } from "../lib/NLib/nmath";
+import { gpu } from "../matrix-common";
 import { BlockLightFactorList } from "./matrix-chunk";
-
-const gpu = new GPU();
 
 interface IConstants {
   chunk_bitshift: number;
@@ -18,22 +18,6 @@ type This = IKernelFunctionThis & {
  */
 function withinChunk(x: number, size: number): number {
   return Math.ceil((x + 1) / size) & 1;
-}
-
-function getUpLight(x: number, y: number, size: number, bitshift: number, light: Float32Array): [number, number, number, number] {
-  const i = (x + (y << bitshift)) & (size * size - 1);
-  const fac = withinChunk(x, size) * withinChunk(y, size);
-
-  return [
-    fac * ((light[i]) & 0xff),
-    fac * ((light[i] >> 8) & 0xff),
-    fac * ((light[i] >> 16) & 0xff),
-    fac * ((light[i] >> 24) & 0xff),
-  ];
-}
-
-function lerp(a: number, b: number, x: number) {
-  return a + (b - a) * x;
 }
 
 function adjColor(selfLight: number, edgeLight: number, factor: number): [number, number, number] {
@@ -87,28 +71,15 @@ function lightFunction(this: This, light: Float32Array, edgeLight: Float32Array,
     Math.floor(
       Math.max(
         factors[blocktype][0],
-        // Math.max(
-        //   factors[blocktype][0], // emission
-        //   factors[blocktype][8] * selfSun // sun diffusion
-        // ),
         factors[blocktype][3] * Math.max(adjUp[0], Math.max(adjDown[0], Math.max(adjLeft[0], adjRight[0]))))),
     Math.floor(
       Math.max(
         factors[blocktype][1],
-        // Math.max(
-        //   factors[blocktype][1], // emission
-        //   factors[blocktype][9] * selfSun // sun diffusion
-        // ),
         factors[blocktype][4] * Math.max(adjUp[1], Math.max(adjDown[1], Math.max(adjLeft[1], adjRight[1]))))),
     Math.floor(
       Math.max(
         factors[blocktype][2],
-        // Math.max(
-        //   factors[blocktype][2], // emission
-        //   factors[blocktype][10] * selfSun // sun diffusion
-        // ),
         factors[blocktype][5] * Math.max(adjUp[2], Math.max(adjDown[2], Math.max(adjLeft[2], adjRight[2]))))),
-    // Math.floor(Math.max(factors[blocktype][6], factors[blocktype][7] * adjUp[3])),
   ];
 
   return col[0] | (col[1] << 8) | (col[2] << 16);// | (col[3] << 24);
@@ -121,7 +92,6 @@ export default function getLightKernel(chunk_bitshift: number) {
   return gpu.createKernel(lightFunction).setFunctions([
     withinChunk,
     adjColor,
-    lerp,
   ]).setOutput([chunksize * chunksize])
     .setConstants<IConstants>({
       chunk_bitshift: chunk_bitshift,

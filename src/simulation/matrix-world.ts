@@ -49,6 +49,7 @@ export default class World {
   private randomTicksPerTick = 64;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private pipelineLightKernel: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private outputLightKernel: any;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
@@ -74,7 +75,7 @@ export default class World {
       blockType.init(this);
     }
 
-    this.pipelineLightKernel = getLightKernel(CHUNK_BITSHIFT).setPipeline(true);
+    this.pipelineLightKernel = getLightKernel(CHUNK_BITSHIFT).setPipeline(true).setImmutable(true);
     this.outputLightKernel = getLightKernel(CHUNK_BITSHIFT);
 
     this.worldGen = this.worldGenGen(this);
@@ -82,17 +83,6 @@ export default class World {
     this.initialized = true;
     return true;
   }
-
-  // public startTickLoop(targetTickrate: number): void {
-  //   if (this.ticking) {
-  //     throw "already ticking!";
-  //   }
-  //   this.ticking = true;
-
-  //   window.setInterval(() => {
-  //     this.performGlobalTick();
-  //   }, ~~(1000 / targetTickrate));
-  // }
 
   public setBlockData(chunk: Chunk, i: number, data: BlockData): void {
     chunk.setNextBlockData(i, data);
@@ -342,6 +332,7 @@ export default class World {
       edges,
       chunk.getBlockData(),
       this.blockTypeLightFactors);
+    
   }
   /**
    * get a BlockType's index from its name
