@@ -753,6 +753,7 @@ standardBlockTypes.push(new BlockType({
   name: "Flower",
   color: Color.fromHex("#faf"),
   densityFunc: densityConstant(150),
+  emission: Color.fromHex("#241c23"),
   numbers: [["acid-resistance", 0.1]],
   tags: ["solid", "stable", "unbreathable", "organic", "plant"],
 }));

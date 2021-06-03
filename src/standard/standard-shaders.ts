@@ -144,6 +144,7 @@ standardBlockShaders.set("Flower", {
   mid1x: 0.33,
   mid2x: 0.66,
   timeFactor1: 1,
+  minBrightness: 0.6,
 });
 
 standardBlockShaders.set("Gray Goo", {
