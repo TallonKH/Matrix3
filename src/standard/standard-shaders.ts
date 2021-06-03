@@ -98,6 +98,17 @@ standardBlockShaders.set("Sinker", {
   timeOffsetFactor2: 0.02,
 });
 
+standardBlockShaders.set("Firefly", {
+  min: Color.fromHex("#f5cd3d"),
+  mid2: Color.fromHex("#ffe252"),
+  max: Color.fromHex("#fff8cf"),
+  mid2x: 0.98,
+  timeFactor1: 0.95,
+  timeFactor2: 0.05,
+  timeScale2: 0.004,
+  timeOffsetFactor2: 0.02,
+});
+
 standardBlockShaders.set("Acid", {
   min: Color.fromHex("#26d15f"),
   max: Color.fromHex("#3deb54"),

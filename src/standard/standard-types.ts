@@ -1,5 +1,5 @@
 import { Color } from "../library";
-import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
+import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateDisplace1, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -160,7 +160,7 @@ standardBlockTypes.push(new BlockType({
       const below = c.getNearIndexI(i, 0, -1);
       if (below !== null) {
         if (below[0].getTypeIndexOfBlock(below[1]) === airMat) {
-          w.tryMutateTypeOfBlock(c, i, skyMat);
+          w.tryMutateTypeOfBlock(below[0], below[1], skyMat);
         }
       }
     };
@@ -466,12 +466,43 @@ standardBlockTypes.push(new BlockType({
   emission: Color.fromHex("#8bc44f"),
   numbers: [["acid-resistance", 0.9]],
   tags: ["solid", "unbreathable", "falling", "unstable"],
-  tickBehaviorGen: () => (w,c,i) => {
-    if(!relativeHasTag(w,c,i,0,-1, "solid")){
-      updateFall(updateStatic)(w,c,i);
+  tickBehaviorGen: () => (w, c, i) => {
+    if (!relativeHasTag(w, c, i, 0, -1, "solid")) {
+      updateFall(updateStatic)(w, c, i);
     }
   },
   randomTickBehaviorGen: () => updateFall(updateStatic),
+}));
+
+
+standardBlockTypes.push(new BlockType({
+  name: "Firefly",
+  color: Color.fromHex("#ffe252"),
+  densityFunc: densityConstant(50),
+  emission: Color.fromHex("#cfbc5e"),
+  numbers: [["acid-resistance", 0]],
+  tags: ["solid", "unstable", "unbreathable", "wandering", "organic", "non-sky-blocking"],
+  opacity: new Color(0.95, 0.95, 0.95),
+  tickBehaviorGen: () => (w, c, i) => {
+    const f = w.getRandomFloat();
+    if (f <= 0.25) {
+      updateDisplace1(LEFT, () => w.queueBlock(c, i))(w, c, i);
+      return;
+    }
+    if (f <= 0.50) {
+      updateDisplace1(RIGHT, () => w.queueBlock(c, i))(w, c, i);
+      return;
+    }
+    if (f <= 0.75) {
+      updateDisplace1(UP, () => w.queueBlock(c, i))(w, c, i);
+      return;
+    }
+    if (f <= 1.00) {
+      updateDisplace1(DOWN, () => w.queueBlock(c, i))(w, c, i);
+      return;
+    }
+  },
+  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
 }));
 
 standardBlockTypes.push(new BlockType({
