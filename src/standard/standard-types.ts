@@ -374,7 +374,7 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -513,7 +513,7 @@ standardBlockTypes.push(new BlockType({
       return;
     }
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -550,7 +550,7 @@ standardBlockTypes.push(new BlockType({
       updateFlow(0.8, updateStatic)(w, c, i);
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -624,7 +624,7 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -661,7 +661,7 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -700,7 +700,7 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
+
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -726,7 +726,7 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Scaffold",
   color: Color.fromHex("#d4b133"),
-  numbers: [["acid-resistance", 1]],
+  numbers: [["acid-resistance", 0.4]],
   tags: ["solid", "unstable", "unbreathable", "seedable"],
   densityFunc: densityConstant(150),
   tickBehaviorGen: () => {
@@ -809,7 +809,6 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -864,5 +863,4 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
-  randomTickBehaviorGen: () => (w, c, i) => w.queueBlock(c, i),
 }));

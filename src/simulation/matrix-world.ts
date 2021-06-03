@@ -230,6 +230,7 @@ export default class World {
         const i = ~~(this.getRandomFloat() * CHUNK_SIZE2);
         if (!chunk.getFlagOfBlock(i, UpdateFlags.LOCKED)) {
           this.blockTypes[chunk.getTypeIndexOfBlock(i)].doRandomTick(this, chunk, i);
+          this.queueBlock(chunk, i);
         }
       }
     }
@@ -299,7 +300,7 @@ export default class World {
       for (let i = 0; i < CHUNK_SIZE; i++) {
         edges[CHUNK_SIZE + i] = lowerChunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
       }
-    }else{
+    } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
         edges[CHUNK_SIZE + i] = 0;
       }
@@ -307,11 +308,11 @@ export default class World {
     const leftChunk = chunk.neighbors[Neighbors.LEFT];
     if (leftChunk !== null) {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE  * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
+        edges[(CHUNK_SIZE * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
       }
-    }else{
+    } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE  * 2) + i] = 0;
+        edges[(CHUNK_SIZE * 2) + i] = 0;
       }
     }
     const rightChunk = chunk.neighbors[Neighbors.RIGHT];
@@ -319,7 +320,7 @@ export default class World {
       for (let i = 0; i < CHUNK_SIZE; i++) {
         edges[(CHUNK_SIZE * 3) + i] = rightChunk.lighting[i << CHUNK_BITSHIFT];
       }
-    }else{
+    } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
         edges[(CHUNK_SIZE * 3) + i] = 0;
       }
@@ -332,7 +333,7 @@ export default class World {
       edges,
       chunk.getBlockData(),
       this.blockTypeLightFactors);
-    
+
   }
   /**
    * get a BlockType's index from its name

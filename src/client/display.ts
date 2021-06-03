@@ -70,6 +70,8 @@ export default class GridDisplay {
   private resizeFinishTimer: number | undefined = undefined;
   private awaitingResizeEnd = true;
   private resizeHappened = false;
+  private awaitingChunkVisibilityRecalc = false;
+  private needsChunkVisibilityRecalc = false;
 
   private redrawLoopRunning = false;
 
@@ -78,7 +80,7 @@ export default class GridDisplay {
   private client: MatrixClient;
 
   //TODO make this not-readonly (need to create a new interval)
-  private readonly targetFPS = 20;
+  private readonly targetFPS = 30;
   private cacheBuffer = 0;
 
   private blockShaders: Array<BlockShaderFactorList> = [shader_missing];
@@ -104,7 +106,7 @@ export default class GridDisplay {
         this.resizeCallbacks.forEach(c => c(es[0]));
         this.awaitingResizeEnd = false;
         this.resizeHappened = true;
-        this.recalcVisibleChunks();
+        this.requestChunkVisibilityRecalc();
       }, 200);
     })).observe(this.canvas);
 
@@ -116,25 +118,34 @@ export default class GridDisplay {
     this.shaderKernel = getShaderKernel().setOutput([CHUNK_SIZE, CHUNK_SIZE]);
   }
 
+  private recalcVisibleChunksBound = this.recalcVisibleChunks.bind(this);
+  public requestChunkVisibilityRecalc(): void {
+    if(!this.awaitingChunkVisibilityRecalc){
+      this.awaitingChunkVisibilityRecalc = true;
+      window.requestAnimationFrame(this.recalcVisibleChunksBound);
+    }
+  }
+
   private updateDims(): void {
     const rect = this.canvas.getBoundingClientRect();
+    const minDim = Math.min(rect.width, rect.height);
+    this.pixelsPerBlock = Math.ceil(minDim / 64);
     this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
     this.dimsCh = this.dims.divide1(CHUNK_SIZE);
     this.canvas.width = this.dims.x;
     this.canvas.height = this.dims.y;
-    this.recalcVisibleChunks();
+    // this.recalcVisibleChunks(); // this is handled in setViewOrigin
+    this.setViewOrigin(this.viewOrigin);
   }
 
   public setViewOrigin(pt: NPoint): void {
     this.viewOrigin = pt;
     this.viewOriginCh = pt.divide1(this.pixelsPerBlock * CHUNK_SIZE);
-    this.recalcVisibleChunks();
+    this.requestChunkVisibilityRecalc();
   }
 
-  public setPixelsPerBlock(val: number): void {
-    this.pixelsPerBlock = val;
-    this.setViewOrigin(this.viewOrigin);
-    this.updateDims();
+  public getPixelsPerBlock(): number {
+    return this.pixelsPerBlock;
   }
 
   public getViewOrigin(): NPoint {
@@ -165,10 +176,12 @@ export default class GridDisplay {
    *  - requests the world to unload chunks that are no longer visible
    *  - queues a redraw
    */
-  public recalcVisibleChunks(): void {
+  private recalcVisibleChunks(): void {
+    this.awaitingChunkVisibilityRecalc = false;
     if (!this.resizeHappened) {
       return;
     }
+
     const newMinX = Math.floor(-this.viewOriginCh.x) - this.visiblePadding;
     const newMinY = Math.floor(this.viewOriginCh.y - this.dimsCh.y) - this.visiblePadding;
     const newMaxX = Math.floor(this.dimsCh.x - this.viewOriginCh.x) + this.visiblePadding;
@@ -221,16 +234,16 @@ export default class GridDisplay {
     this.visibleMax = new NPoint(newMaxX, newMaxY);
   }
 
+  private renderViewBound = this.renderView.bind(this);
   public startDrawLoop(): void {
     if (this.redrawLoopRunning) {
       return;
     }
 
-    const boundRedraw = this.renderView.bind(this);
     window.setInterval(() => {
       if (!this.redrawPending && this.resizeHappened) {
         this.redrawPending = true;
-        window.requestAnimationFrame(boundRedraw);
+        window.requestAnimationFrame(this.renderViewBound);
       }
     }, ~~(1000 / this.targetFPS));
 
@@ -239,9 +252,10 @@ export default class GridDisplay {
 
   private renderView() {
     if (this.visibleMin === null || this.visibleMax === null) {
-      throw "can't render view when visiblemin/max are null!";
+      window.requestAnimationFrame(this.renderViewBound);
+      return;
     }
-    this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
+    // this.ctx.clearRect(0, 0, this.dims.x, this.dims.y);
 
     const limitedTimeMillis = Date.now() & 0xffffffffffff;
 

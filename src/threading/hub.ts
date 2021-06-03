@@ -108,6 +108,13 @@ document.addEventListener("keydown", (e) => {
     case "9":
       drawRadius = 40;
       break;
+    // case "=":
+    //   mainDisplay.setPixelsPerBlock(mainDisplay.getPixelsPerBlock() + 1);
+    //   break;
+    // case "-":
+    //   mainDisplay.setPixelsPerBlock(mainDisplay.getPixelsPerBlock() - 1);
+    //   break;
+
   }
 });
 
@@ -257,7 +264,7 @@ buttons.sort(([a, _], [b, __]) => {
   const h = aHSL[0] - bHSL[0];
   const s = aHSL[1] - bHSL[1];
   const l = aHSL[2] - bHSL[2];
-  return Math.round(h * 10) || s || l;
+  return Math.round(h * 7) || s || l;
 });
 
 for (const [_, button] of buttons) {
@@ -287,4 +294,4 @@ window.setInterval(() => {
   if (!newViewOrigin.equals(mainDisplay.getViewOrigin())) {
     mainDisplay.setViewOrigin(newViewOrigin);
   }
-}, ~~(1000 / 20));
+}, ~~(1000 / 30));
