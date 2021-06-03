@@ -47,12 +47,6 @@ displayContainer.appendChild(mainDisplay.canvas);
 mainDisplay.startDrawLoop();
 server.performGlobalTick();
 
-window.setInterval(() => {
-  server.performGlobalTick();
-  // }
-  // server.performLightTick();
-  server.performGlobalLightTick();
-}, ~~(1000 / 20));
 // window.setTimeout(() => server.performGlobalTick(), 500);
 
 let leftKeyDown = false;
@@ -70,19 +64,15 @@ document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = true;
-      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
       break;
     case "ArrowRight":
       rightKeyDown = true;
-      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
       break;
     case "ArrowUp":
       upKeyDown = true;
-      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
       break;
     case "ArrowDown":
       downKeyDown = true;
-      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
       break;
     case "Shift":
       shiftKeyDown = true;
@@ -140,26 +130,21 @@ document.addEventListener("keyup", (e) => {
   }
 });
 
-// window.setInterval(() => {
-//   if (shiftKeyDown) {
-//     panSpeed = -100;
-//   } else {
-//     panSpeed = -10;
-//   }
-//   if (leftKeyDown) {
-//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
-//   }
-//   if (rightKeyDown) {
-//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
-//   }
-//   if (upKeyDown) {
-//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
-//   }
-//   if (downKeyDown) {
-//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
-//   }
-//   // console.log(mainDisplay.getViewOrigin());
-// }, (1000 / 60));
+const toolbarOuter = document.getElementById("toolbar-outer");
+if (toolbarOuter === null) {
+  throw "no outer toolbar";
+}
+
+const toolbarInner = document.getElementById("toolbar-inner");
+if (toolbarInner === null) {
+  throw "no inner toolbar";
+}
+
+const blocktypeContainer = document.getElementById("block-type-list");
+if (blocktypeContainer === null) {
+  throw "no container";
+}
+
 
 let mouse1Down = false;
 let mouse2Down = false;
@@ -167,9 +152,11 @@ mainDisplay.canvas.addEventListener("mousedown", (e) => {
   switch (e.button) {
     case 0:
       mouse1Down = true;
+      toolbarOuter.classList.add("muted");
       break;
     case 2:
       mouse2Down = true;
+      toolbarOuter.classList.add("muted");
       break;
   }
   drawFunc(e);
@@ -178,9 +165,15 @@ document.addEventListener("mouseup", (e) => {
   switch (e.button) {
     case 0:
       mouse1Down = false;
+      if (!mouse2Down) {
+        toolbarOuter.classList.remove("muted");
+      }
       break;
     case 2:
       mouse2Down = false;
+      if (!mouse1Down) {
+        toolbarOuter.classList.remove("muted");
+      }
       break;
   }
 });
@@ -221,11 +214,6 @@ const drawFunc = (e: MouseEvent) => {
 mainDisplay.canvas.addEventListener("mousemove", (e) => {
   drawFunc(e);
 });
-
-const blocktypeContainer = document.getElementById("block-type-list");
-if (blocktypeContainer === null) {
-  throw "no container";
-}
 
 const buttons: Array<HTMLElement> = [];
 for (let i = 0; i < standardBlockTypes.length; i++) {
@@ -270,3 +258,24 @@ for (const button of buttons) {
 mainDisplay.setViewOrigin(new NPoint(0, 640));
 
 // window.setTimeout(() => server.performGlobalLightTick(), 400);
+
+window.setInterval(() => {
+  server.performGlobalTick();
+  server.performGlobalLightTick();
+  let newViewOrigin = mainDisplay.getViewOrigin();
+  if (leftKeyDown) {
+    newViewOrigin = newViewOrigin.add2(-panSpeed, 0);
+  }
+  if (rightKeyDown) {
+    newViewOrigin = newViewOrigin.add2(panSpeed, 0);
+  }
+  if (upKeyDown) {
+    newViewOrigin = newViewOrigin.add2(0, -panSpeed);
+  }
+  if (downKeyDown) {
+    newViewOrigin = newViewOrigin.add2(0, panSpeed);
+  }
+  if (!newViewOrigin.equals(mainDisplay.getViewOrigin())) {
+    mainDisplay.setViewOrigin(newViewOrigin);
+  }
+}, ~~(1000 / 20));
