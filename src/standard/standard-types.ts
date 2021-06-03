@@ -1,7 +1,8 @@
 import { Color } from "../library";
-import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getRelativesTypes, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
+import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { DOWN, LEFT, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
 import Chunk from "../simulation/matrix-chunk";
 
@@ -162,7 +163,7 @@ standardBlockTypes.push(new BlockType({
           w.tryMutateTypeOfBlock(c, i, skyMat);
         }
       }
-    }
+    };
   },
   opacity: new Color(0.99, 0.99, 0.99),
   emission: Color.fromHex("#ffffdf"),
@@ -733,6 +734,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#4f8"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
+  emission: Color.fromHex("#4f8"),
   tags: ["solid", "unstable", "unbreathable", "falling", "organic", "plant"],
   tickBehaviorGen: (world_init: World) => {
     const aboveCoords = [UP_LEFT, UP, UP_RIGHT];
