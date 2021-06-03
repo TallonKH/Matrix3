@@ -505,6 +505,13 @@ standardBlockTypes.push(new BlockType({
   tickBehaviorGen: (world_init: World) => {
     return (w, c, i) => {
       const stoneMat = world_init.getBlockTypeIndex("Stone") ?? 0;
+      const adjTypes = Array.from(getAdjacentTypes(w,c,i));
+
+      // if touching something freezing, become stone
+      if(anyHaveTag(adjTypes, "freezer")){
+        w.tryMutateTypeOfBlock(c, i, stoneMat);
+        return;
+      }
 
       // if touching something wet, make self stone
       if (w.getRandomFloat() > 0.95) {
