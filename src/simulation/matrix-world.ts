@@ -1,7 +1,7 @@
 import { Texture, IKernelRunShortcutBase, KernelOutput } from "gpu.js";
 import { NPoint, PointStr } from "../lib/NLib/npoint";
-import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, shuffleArray } from "../library";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2 } from "../matrix-common";
+import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, Neighbors, shuffleArray } from "../library";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1, CHUNK_SIZEm1 } from "../matrix-common";
 import WorldHandler from "../world-handler";
 import getLightKernel from "./light-shader";
 import BlockType from "./matrix-blocktype";
@@ -279,19 +279,67 @@ export default class World {
     this.time++;
   }
 
-  public performGlobalLightTick(): void {
+  public performGlobalLightUpdate(): void {
     for (const [co, chunk] of this.loadedChunks) {
-      this.performLightTick(chunk);
+      this.performLightUpdate(chunk);
     }
   }
 
-  public performLightTick(chunk: Chunk): void {
+
+  public performLightUpdate(chunk: Chunk): void {
     if (this.pipelineLightKernel === undefined || this.outputLightKernel === undefined) {
       throw "no light kernel!";
     }
 
+    // light values at edges of adjacent chunks
+    const edges = new Float32Array(CHUNK_SIZE * 4);
+
+    const upperChunk = chunk.neighbors[Neighbors.UP];
+    if (upperChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[i] = upperChunk.lighting[i];
+      }
+    } else {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[i] = 0;
+      }
+    }
+    const lowerChunk = chunk.neighbors[Neighbors.DOWN];
+    if (lowerChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[CHUNK_SIZE + i] = lowerChunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[CHUNK_SIZE + i] = 0;
+      }
+    }
+    const leftChunk = chunk.neighbors[Neighbors.LEFT];
+    if (leftChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE  * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE  * 2) + i] = 0;
+      }
+    }
+    const rightChunk = chunk.neighbors[Neighbors.RIGHT];
+    if (rightChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE * 3) + i] = rightChunk.lighting[i << CHUNK_BITSHIFT];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE * 3) + i] = 0;
+      }
+    }
+
+
+    const piped = this.pipelineLightKernel(chunk.lighting, edges, chunk.getBlockData(), this.blockTypeLightFactors);
     chunk.lighting = this.outputLightKernel(
-      this.pipelineLightKernel(chunk.lighting, chunk.getBlockData(), this.blockTypeLightFactors),
+      piped,
+      edges,
       chunk.getBlockData(),
       this.blockTypeLightFactors);
   }
@@ -399,7 +447,7 @@ export default class World {
     // for (let i = 0; i < CHUNK_SIZE2; i++) {
     //   this.queueBlock(chunk, i);
     // }
-    this.performLightTick(chunk);
+    this.performLightUpdate(chunk);
 
     this.loadedChunks.set(ch, chunk);
 

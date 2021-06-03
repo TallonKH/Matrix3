@@ -1,5 +1,4 @@
 import { GPU, IKernelFunctionThis } from "gpu.js";
-import { CHUNK_MODMASK2 } from "../matrix-common";
 import { BlockLightFactorList } from "./matrix-chunk";
 
 const gpu = new GPU();
@@ -21,17 +20,6 @@ function withinChunk(x: number, size: number): number {
   return Math.ceil((x + 1) / size) & 1;
 }
 
-function getAdjacentLight(x: number, y: number, size: number, bitshift: number, light: Float32Array): [number, number, number] {
-  const i = (x + (y << bitshift)) & (size * size - 1);
-  const fac = withinChunk(x, size) * withinChunk(y, size);
-
-  return [
-    fac * ((light[i]) & 0xff),
-    fac * ((light[i] >> 8) & 0xff),
-    fac * ((light[i] >> 16) & 0xff),
-  ];
-}
-
 function getUpLight(x: number, y: number, size: number, bitshift: number, light: Float32Array): [number, number, number, number] {
   const i = (x + (y << bitshift)) & (size * size - 1);
   const fac = withinChunk(x, size) * withinChunk(y, size);
@@ -44,7 +32,19 @@ function getUpLight(x: number, y: number, size: number, bitshift: number, light:
   ];
 }
 
-function lightFunction(this: This, light: Float32Array, blockdata: Uint16Array, factors: BlockLightFactorList[]): number {
+function lerp(a: number, b: number, x: number) {
+  return a + (b - a) * x;
+}
+
+function adjColor(selfLight: number, edgeLight: number, factor: number): [number, number, number] {
+  return [
+    ((lerp(edgeLight, selfLight, factor)) & 0xff),
+    ((lerp(edgeLight, selfLight, factor) >> 8) & 0xff),
+    ((lerp(edgeLight, selfLight, factor) >> 16) & 0xff),
+  ];
+}
+
+function lightFunction(this: This, light: Float32Array, edgeLight: Float32Array, blockdata: Uint16Array, factors: BlockLightFactorList[]): number {
   const chunk_size = this.constants.chunk_size;
   const chunk_modmask = this.constants.chunk_modmask;
   const chunk_bitshift = this.constants.chunk_bitshift;
@@ -53,12 +53,33 @@ function lightFunction(this: This, light: Float32Array, blockdata: Uint16Array, 
   const x = i & chunk_modmask;
   const y = i >> chunk_bitshift;
 
-  // const selfSun = (light[i] >> 24) & 0xff;
+  // light above
+  const adjUp = adjColor(
+    light[x + (((y + 1) & chunk_modmask) << chunk_bitshift)],
+    edgeLight[x],
+    withinChunk(y + 1, chunk_size)
+  );
 
-  const adjUp = getAdjacentLight(x, y + 1, chunk_size, chunk_bitshift, light);
-  const adjDown = getAdjacentLight(x, y - 1, chunk_size, chunk_bitshift, light);
-  const adjLeft = getAdjacentLight(x - 1, y, chunk_size, chunk_bitshift, light);
-  const adjRight = getAdjacentLight(x + 1, y, chunk_size, chunk_bitshift, light);
+  // light below
+  const adjDown = adjColor(
+    light[x + (((y - 1) & chunk_modmask) << chunk_bitshift)],
+    edgeLight[chunk_size + x], 
+    withinChunk(y - 1, chunk_size)
+  );
+
+  // light left
+  const adjLeft = adjColor(
+    light[((x - 1) & chunk_modmask) + (y << chunk_bitshift)],
+    edgeLight[chunk_size + chunk_size + y], 
+    withinChunk(x - 1, chunk_size)
+  );
+
+  // light right
+  const adjRight = adjColor(
+    light[((x + 1) & chunk_modmask) + (y << chunk_bitshift)],
+    edgeLight[chunk_size + chunk_size + chunk_size + y], 
+    withinChunk(x + 1, chunk_size)
+  );
 
   const blocktype = blockdata[i] & 0xff;
 
@@ -99,8 +120,8 @@ export default function getLightKernel(chunk_bitshift: number) {
 
   return gpu.createKernel(lightFunction).setFunctions([
     withinChunk,
-    getUpLight,
-    getAdjacentLight,
+    adjColor,
+    lerp,
   ]).setOutput([chunksize * chunksize])
     .setConstants<IConstants>({
       chunk_bitshift: chunk_bitshift,

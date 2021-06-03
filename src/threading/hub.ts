@@ -269,4 +269,4 @@ for (const button of buttons) {
 
 mainDisplay.setViewOrigin(new NPoint(0, 640));
 
-// window.setTimeout(() => server.performLightTick(), 400);
+// window.setTimeout(() => server.performGlobalLightTick(), 400);

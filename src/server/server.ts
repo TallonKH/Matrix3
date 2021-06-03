@@ -59,7 +59,7 @@ export default class MatrixServer extends WorldHandler {
   }
 
   public performGlobalLightTick(): void {
-    this.world.performGlobalLightTick();
+    this.world.performGlobalLightUpdate();
   }
 
   // index, type id

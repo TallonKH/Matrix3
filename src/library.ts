@@ -102,7 +102,7 @@ export class Color {
   }
 }
 
-enum Neighbors {
+export enum Neighbors {
   UP = 0,
   UP_RIGHT = 1,
   RIGHT = 2,
