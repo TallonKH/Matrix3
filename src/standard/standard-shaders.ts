@@ -210,6 +210,12 @@ standardBlockShaders.set("Glass", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("Darkstone", {
+  min: Color.fromHex("#223"),
+  max: Color.fromHex("#252535"),
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("Lamp", {
   min: Color.fromHex("#ffffdf"),
   max: Color.fromHex("#ffffff"),

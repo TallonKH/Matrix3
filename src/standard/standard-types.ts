@@ -136,6 +136,16 @@ standardBlockTypes.push(new BlockType({
 }));
 
 standardBlockTypes.push(new BlockType({
+  name: "Darkstone",
+  color: Color.fromHex("#223"),
+  densityFunc: densityConstant(220),
+  numbers: [["acid-resistance", 0.95]],
+  tags: ["solid", "stable", "unbreathable", "virus-immune"],
+  tickBehaviorGen: () => updateStatic,
+  opacity: new Color(0, 0, 0),
+}));
+
+standardBlockTypes.push(new BlockType({
   name: "Lamp",
   color: Color.fromHex("#ffffdf"),
   densityFunc: densityConstant(200),
