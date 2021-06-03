@@ -5,6 +5,7 @@ import { standardBlockShaders } from "../standard/standard-shaders";
 import { standardBlockTypes } from "../standard/standard-types";
 import { CheckerGen } from "../standard/standard-terrain-gen";
 import { NPoint } from "../lib/NLib/npoint";
+import BlockType from "../simulation/matrix-blocktype";
 
 const parts: [MatrixServer | null, MatrixClient | null] = [null, null];
 
@@ -215,23 +216,23 @@ mainDisplay.canvas.addEventListener("mousemove", (e) => {
   drawFunc(e);
 });
 
-const buttons: Array<HTMLElement> = [];
+const buttons: Array<[BlockType, HTMLElement]> = [];
 for (let i = 0; i < standardBlockTypes.length; i++) {
   const btype = standardBlockTypes[i];
   const button = document.createElement("div");
-  buttons.push(button);
+  buttons.push([btype, button]);
   button.classList.add("block-type-button");
   button.style.backgroundColor = btype.color.toHex();
   button.innerHTML = btype.name;
   button.addEventListener("mouseup", (e) => {
     if (e.button === 0) {
-      for (const other of buttons) {
+      for (const [_, other] of buttons) {
         other.classList.remove("selected-primary");
       }
       button.classList.add("selected-primary");
       drawType1 = i + 1;
     } else if (e.button === 2) {
-      for (const other of buttons) {
+      for (const [_, other] of buttons) {
         other.classList.remove("selected-secondary");
       }
       button.classList.add("selected-secondary");
@@ -250,8 +251,16 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   };
 }
 
-buttons.sort((a, b) => a.innerHTML.localeCompare(b.innerHTML));
-for (const button of buttons) {
+buttons.sort(([a, _], [b, __]) => {
+  const aHSL = a.color.toHSL();
+  const bHSL = b.color.toHSL();
+  const h = aHSL[0] - bHSL[0];
+  const s = aHSL[1] - bHSL[1];
+  const l = aHSL[2] - bHSL[2];
+  return Math.round(h * 10) || s || l;
+});
+
+for (const [_, button] of buttons) {
   blocktypeContainer.appendChild(button);
 }
 

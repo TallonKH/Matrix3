@@ -46,16 +46,17 @@ body {
   width: 150px;
   height: 100%;
   transition: all 0.2s;
+  transition-delay: 0s;
 }
 
 #toolbar-outer.muted {
   pointer-events: none;
+  transition-delay: 0.2s;
   opacity: 0.1;
   /* right: -50px; */
 }
 
 #toolbar-inner {
-  pointer-events: all;
   float: right;
   box-shadow: -4px 0px 4px black;
   background-color: #eee8;
