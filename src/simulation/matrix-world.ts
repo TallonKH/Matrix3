@@ -1,9 +1,11 @@
+import { Texture, IKernelRunShortcutBase, KernelOutput } from "gpu.js";
 import { NPoint, PointStr } from "../lib/NLib/npoint";
-import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, shuffleArray } from "../library";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1 } from "../matrix-common";
+import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, Neighbors, shuffleArray } from "../library";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1, CHUNK_SIZEm1 } from "../matrix-common";
 import WorldHandler from "../world-handler";
+import getLightKernel from "./light-shader";
 import BlockType from "./matrix-blocktype";
-import Chunk, { BlockData, UpdateFlags } from "./matrix-chunk";
+import Chunk, { BlockData, BlockLightFactorList, UpdateFlags } from "./matrix-chunk";
 import WorldGenerator from "./matrix-worldgen";
 
 /**
@@ -14,8 +16,8 @@ const bt_missing: BlockType = new BlockType({
   color: new Color(1, 0, 1),
 });
 
-const chunkImporter = new TextEncoder();
-const chunkExporter = new TextDecoder("utf-16");
+// const chunkImporter = new TextEncoder();
+// const chunkExporter = new TextDecoder("utf-16");
 
 /**
  * fill the world with bt_missing
@@ -33,17 +35,21 @@ class MissingWorldGen extends WorldGenerator {
 
 export default class World {
   private readonly chunkLoadRequests: Map<PointStr, number> = new Map();
-  private readonly storedChunks: Map<PointStr, [Uint16Array, Uint8Array]> = new Map();
+  private readonly storedChunks: Map<PointStr, [Uint16Array, Uint8Array, Float32Array]> = new Map();
   private readonly loadedChunks: Map<PointStr, Chunk> = new Map();
   private readonly worldGenGen: (world: World) => WorldGenerator;
   private worldGen?: WorldGenerator;
   private readonly blockTypes: Array<BlockType> = [];
   private readonly blockTypeMap: Map<string, number> = new Map();
+  private readonly blockTypeLightFactors: Array<BlockLightFactorList> = [];
   private time = 0;
   private rand = 1;
   private initialized = false;
   public readonly handler: WorldHandler;
   private randomTicksPerTick = 64;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private pipelineLightKernel: any;
+  private outputLightKernel: any;
 
   constructor(handler: WorldHandler, worldGenGen: (world: World) => WorldGenerator) {
     this.handler = handler;
@@ -67,6 +73,9 @@ export default class World {
     for (const blockType of this.blockTypes) {
       blockType.init(this);
     }
+
+    this.pipelineLightKernel = getLightKernel(CHUNK_BITSHIFT).setPipeline(true);
+    this.outputLightKernel = getLightKernel(CHUNK_BITSHIFT);
 
     this.worldGen = this.worldGenGen(this);
     this.worldGen.runInit();
@@ -177,7 +186,7 @@ export default class World {
 
         // store
         if (chunk.needsSaving) {
-          this.storedChunks.set(ch, [chunk.getBlockData(), chunk.getBlockFlags()]);
+          this.storedChunks.set(ch, [chunk.getBlockData(), chunk.getBlockFlags(), chunk.lighting]);
         }
 
         // unload
@@ -196,7 +205,7 @@ export default class World {
   /**
    * Logic update for all pending blocks
    */
-  public performGlobalTick(): void {
+  public performGlobalBlockTick(): void {
     if (!this.initialized) {
       throw "Attempted global tick before initialization";
     }
@@ -252,12 +261,12 @@ export default class World {
     }
 
     // forward changes to server/handler
-    for (const chunk of pendingChunks) {
+    for (const chunk of loadedChunks) {
       // this.handler.sendChunkData(chunk.coord, {
       //   types: chunk.getBlockTypes(),
       //   ids: chunk.getBlockIds(),
       // });
-      this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
+      this.handler.sendChunkData(chunk.coord, chunk.getBlockData(), chunk.lighting);
     }
 
     // apply/flush the pendingPending buffer
@@ -270,6 +279,70 @@ export default class World {
     this.time++;
   }
 
+  public performGlobalLightUpdate(): void {
+    for (const [co, chunk] of this.loadedChunks) {
+      this.performLightUpdate(chunk);
+    }
+  }
+
+
+  public performLightUpdate(chunk: Chunk): void {
+    if (this.pipelineLightKernel === undefined || this.outputLightKernel === undefined) {
+      throw "no light kernel!";
+    }
+
+    // light values at edges of adjacent chunks
+    const edges = new Float32Array(CHUNK_SIZE * 4);
+
+    const upperChunk = chunk.neighbors[Neighbors.UP];
+    if (upperChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[i] = upperChunk.lighting[i];
+      }
+    } else {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[i] = 0;
+      }
+    }
+    const lowerChunk = chunk.neighbors[Neighbors.DOWN];
+    if (lowerChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[CHUNK_SIZE + i] = lowerChunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[CHUNK_SIZE + i] = 0;
+      }
+    }
+    const leftChunk = chunk.neighbors[Neighbors.LEFT];
+    if (leftChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE  * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE  * 2) + i] = 0;
+      }
+    }
+    const rightChunk = chunk.neighbors[Neighbors.RIGHT];
+    if (rightChunk !== null) {
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE * 3) + i] = rightChunk.lighting[i << CHUNK_BITSHIFT];
+      }
+    }else{
+      for (let i = 0; i < CHUNK_SIZE; i++) {
+        edges[(CHUNK_SIZE * 3) + i] = 0;
+      }
+    }
+
+
+    const piped = this.pipelineLightKernel(chunk.lighting, edges, chunk.getBlockData(), this.blockTypeLightFactors);
+    chunk.lighting = this.outputLightKernel(
+      piped,
+      edges,
+      chunk.getBlockData(),
+      this.blockTypeLightFactors);
+  }
   /**
    * get a BlockType's index from its name
    */
@@ -307,6 +380,15 @@ export default class World {
     const blockId: number = this.blockTypes.length;
     this.blockTypeMap.set(type.name, blockId);
     this.blockTypes.push(type);
+
+    this.blockTypeLightFactors.push([
+      ~~(type.emission.r * 255), ~~(type.emission.g * 255), ~~(type.emission.b * 255),
+      type.opacity.r, type.opacity.g, type.opacity.b,
+      ~~(type.sunEmission * 255),
+      type.sunOpacity,
+      type.sunDiffusion.r, type.sunDiffusion.g, type.sunDiffusion.b,
+    ]);
+
     return blockId;
   }
 
@@ -345,7 +427,7 @@ export default class World {
     let chunk;
     const storedData = this.storedChunks.get(ch);
     if (storedData !== undefined) {
-      chunk = new Chunk(x, y, storedData[0], storedData[1]);
+      chunk = new Chunk(x, y, storedData[0], storedData[1], storedData[2]);
     } else {
       // create new chunk
       chunk = new Chunk(x, y);
@@ -365,6 +447,7 @@ export default class World {
     // for (let i = 0; i < CHUNK_SIZE2; i++) {
     //   this.queueBlock(chunk, i);
     // }
+    this.performLightUpdate(chunk);
 
     this.loadedChunks.set(ch, chunk);
 
@@ -377,7 +460,7 @@ export default class World {
       }
     }
 
-    this.handler.sendChunkData(chunk.coord, chunk.getBlockData());
+    this.handler.sendChunkData(chunk.coord, chunk.getBlockData(), chunk.lighting);
     return chunk;
   }
 

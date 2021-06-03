@@ -9,8 +9,8 @@ import { NPoint } from "../lib/NLib/npoint";
 const parts: [MatrixServer | null, MatrixClient | null] = [null, null];
 
 const server: MatrixServer = new MatrixServer(
-  (coord, chunkData) => {
-    parts[1]?.sendChunkData(coord, chunkData);
+  (coord, chunkData, lighting) => {
+    parts[1]?.sendChunkData(coord, chunkData, lighting);
   },
   standardBlockTypes,
   (world) => new CheckerGen(world)
@@ -46,7 +46,13 @@ displayContainer.appendChild(mainDisplay.canvas);
 
 mainDisplay.startDrawLoop();
 server.performGlobalTick();
-window.setInterval(() => server.performGlobalTick(), ~~(1000 / 30));
+
+window.setInterval(() => {
+  server.performGlobalTick();
+  // }
+  // server.performLightTick();
+  server.performGlobalLightTick();
+}, ~~(1000 / 20));
 // window.setTimeout(() => server.performGlobalTick(), 500);
 
 let leftKeyDown = false;
@@ -55,24 +61,28 @@ let upKeyDown = false;
 let downKeyDown = false;
 let shiftKeyDown = false;
 
-let panSpeed = -10;
+const panSpeed = -64;
 let drawRadius = 3;
-let drawType1 = 4;
-let drawType2 = 1;
+let drawType1 = standardBlockTypes.findIndex((bt) => bt.name === "Dirt") + 1;
+let drawType2 = standardBlockTypes.findIndex((bt) => bt.name === "Air") + 1;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
       break;
     case "ArrowRight":
       rightKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
       break;
     case "ArrowUp":
       upKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
       break;
     case "ArrowDown":
       downKeyDown = true;
+      mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
       break;
     case "Shift":
       shiftKeyDown = true;
@@ -130,26 +140,26 @@ document.addEventListener("keyup", (e) => {
   }
 });
 
-window.setInterval(() => {
-  if (shiftKeyDown) {
-    panSpeed = -100;
-  } else {
-    panSpeed = -10;
-  }
-  if (leftKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
-  }
-  if (rightKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
-  }
-  if (upKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
-  }
-  if (downKeyDown) {
-    mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
-  }
-  // console.log(mainDisplay.getViewOrigin());
-}, (1000 / 30));
+// window.setInterval(() => {
+//   if (shiftKeyDown) {
+//     panSpeed = -100;
+//   } else {
+//     panSpeed = -10;
+//   }
+//   if (leftKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(-panSpeed, 0));
+//   }
+//   if (rightKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(panSpeed, 0));
+//   }
+//   if (upKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, -panSpeed));
+//   }
+//   if (downKeyDown) {
+//     mainDisplay.setViewOrigin(mainDisplay.getViewOrigin().add2(0, panSpeed));
+//   }
+//   // console.log(mainDisplay.getViewOrigin());
+// }, (1000 / 60));
 
 let mouse1Down = false;
 let mouse2Down = false;
@@ -252,9 +262,11 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   };
 }
 
-buttons.sort((a,b) => a.innerHTML.localeCompare(b.innerHTML));
-for(const button of buttons){
+buttons.sort((a, b) => a.innerHTML.localeCompare(b.innerHTML));
+for (const button of buttons) {
   blocktypeContainer.appendChild(button);
 }
 
-mainDisplay.setViewOrigin(new NPoint(0,640));
+mainDisplay.setViewOrigin(new NPoint(0, 640));
+
+// window.setTimeout(() => server.performGlobalLightTick(), 400);

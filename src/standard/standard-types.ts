@@ -2,18 +2,59 @@ import { Color } from "../library";
 import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { DOWN, LEFT, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
 import Chunk from "../simulation/matrix-chunk";
 
 export const standardBlockTypes: Array<BlockType> = [];
 
 standardBlockTypes.push(new BlockType({
-  name: "Air",
+  name: "Sky",
   color: Color.fromHex("#e6f2ff"),
   densityFunc: densityConstant(10),
   numbers: [["acid-resistance", 1]],
-  tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable"],
-  tickBehaviorGen: () => updateFlow(1, updateStatic),
+  tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable", "non-sky-blocking"],
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      const above = c.getNearIndexI(i, 0, 1);
+      if (above === null) {
+        return;
+      }
+      if (!relativeHasTag(w, c, i, 0, 1, "non-sky-blocking")) {
+        w.tryMutateTypeOfBlock(c, i, airMat);
+      } else {
+        updateFlow(1, updateStatic)(w, c, i);
+      }
+    };
+  },
+  opacity: new Color(0.99, 0.99, 0.99),
+  emission: Color.fromHex("#ffffff"),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Air",
+  color: Color.fromHex("#eeeeee"),
+  densityFunc: densityConstant(10),
+  numbers: [["acid-resistance", 1]],
+  tags: ["replaceable", "breathable", "fluid", "gas", "uncloneable", "unvoidable"],
+  tickBehaviorGen: (world_init) => {
+    const skyMat = world_init.getBlockTypeIndex("Sky") ?? 0;
+
+    return (w, c, i) => {
+      const above = c.getNearIndexI(i, 0, 1);
+      if (above === null) {
+        return;
+      }
+      if (above[0].getTypeIndexOfBlock(above[1]) === skyMat) {
+        w.tryMutateTypeOfBlock(c, i, skyMat);
+      } else {
+        updateFlow(1, updateStatic)(w, c, i);
+      }
+    };
+  },
+  opacity: new Color(0.99, 0.99, 0.99),
 }));
 
 
@@ -61,7 +102,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#f0d422"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.6]],
-  tags: ["solid", "unstable", "unbreathable", "falling", "cascading", "sandy", "earth", "meltable"],
+  tags: ["solid", "unstable", "unbreathable", "falling", "cascading", "sandy", "earth", "meltable", "non-sky-blocking"],
   tickBehaviorGen: () => updateCascade(updateStatic),
   randomTickBehaviorGen: (world_init: World): TickBehavior => {
     const glassMat = world_init.getBlockTypeIndex("Glass") ?? 0;
@@ -91,6 +132,61 @@ standardBlockTypes.push(new BlockType({
   numbers: [["acid-resistance", 1]],
   tags: ["solid", "stable", "unbreathable", "virus-immune"],
   tickBehaviorGen: () => updateStatic,
+  opacity: new Color(0.99, 0.99, 0.99),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Lamp",
+  color: Color.fromHex("#ffffdf"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "unbreathable"],
+  tickBehaviorGen: () => updateStatic,
+  opacity: new Color(0.99, 0.99, 0.99),
+  emission: Color.fromHex("#eeeeee"),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Sunstone",
+  color: Color.fromHex("#ffef6f"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 1]],
+  tags: ["solid", "stable", "unbreathable", "non-sky-blocking"],
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+    const skyMat = world_init.getBlockTypeIndex("Sky") ?? 0;
+    
+    return (w, c, i) => {
+      const below = c.getNearIndexI(i, 0, -1);
+      if (below !== null) {
+        if (below[0].getTypeIndexOfBlock(below[1]) === airMat) {
+          w.tryMutateTypeOfBlock(c, i, skyMat);
+        }
+      }
+    };
+  },
+  opacity: new Color(0.99, 0.99, 0.99),
+  emission: Color.fromHex("#ffffdf"),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Hotstone",
+  color: Color.fromHex("#8a4b45"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.8]],
+  tags: ["solid", "stable", "unbreathable", "hot", "boiler", "melter"],
+  tickBehaviorGen: () => updateStatic,
+  emission: Color.fromHex("#ff6020"),
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Coldstone",
+  color: Color.fromHex("#456d8a"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.8]],
+  tags: ["solid", "stable", "unbreathable", "cold", "freezer"],
+  tickBehaviorGen: () => updateStatic,
+  emission: Color.fromHex("#2080ff"),
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -230,6 +326,7 @@ standardBlockTypes.push(new BlockType({
   name: "Coater",
   color: Color.fromHex("#7227ab"),
   densityFunc: densityConstant(200),
+  emission: Color.fromHex("#c247bb"),
   numbers: [["acid-resistance", 0]],
   tags: ["solid", "stable", "goo-immune", "virus-immune", "uncloneable"],
   tickBehaviorGen: (world_init) => {
@@ -301,6 +398,7 @@ standardBlockTypes.push(new BlockType({
   name: "Water",
   color: Color.fromHex("#408cff"),
   densityFunc: densityConstant(100),
+  opacity: new Color(0.9, 0.96, 0.99),
   tags: ["fluid", "liquid", "unbreathable", "falling", "unstable", "wet", "water-based", "hydrating", "boilable", "mossable"],
   tickBehaviorGen: (world_init) => {
     const steamMat = world_init.getBlockTypeIndex("Steam") ?? 0;
@@ -332,7 +430,7 @@ standardBlockTypes.push(new BlockType({
   name: "Steam",
   color: Color.fromHex("#e3e3e3"),
   densityFunc: densityConstant(5),
-  tags: ["fluid", "gas", "unbreathable", "rising", "unstable", "wet", "water-based", "hot", "boiling"],
+  tags: ["fluid", "gas", "unbreathable", "rising", "unstable", "wet", "water-based", "hot", "boiling", "non-sky-blocking"],
   tickBehaviorGen: (world_init) => {
     const waterMat = world_init.getBlockTypeIndex("Water") ?? 0;
 
@@ -364,6 +462,7 @@ standardBlockTypes.push(new BlockType({
   name: "Acid",
   color: Color.fromHex("#26d15f"),
   densityFunc: densityConstant(120),
+  emission: Color.fromHex("#60ff20"),
   numbers: [["acid-resistance", 1]],
   tags: ["fluid", "unbreathable", "liquid", "falling", "unstable"],
   tickBehaviorGen: (world_init) => {
@@ -399,6 +498,7 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Lava",
   color: Color.fromHex("#ff3500"),
+  emission: Color.fromHex("#ffd0a3"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.9]],
   tags: ["fluid", "liquid", "unbreathable", "falling", "unstable", "stone-based", "hot", "boiler", "melter"],
@@ -542,14 +642,16 @@ standardBlockTypes.push(new BlockType({
   name: "Void",
   color: Color.fromHex("#103"),
   numbers: [["acid-resistance", 1]],
-  tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable", "void"],
+  tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable", "void", "unvoidable"],
   densityFunc: densityConstant(200),
+  opacity: new Color(0.1, 0, 0.1),
+  emission: Color.fromHex("#300060"),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
 
     return (w, c, i) => {
       for (const adj of getAdjacents(c, i)) {
-        if (!getTypeOfBlock(w, adj).hasTag("invincible")) {
+        if (!getTypeOfBlock(w, adj).hasTag("invincible") && !getTypeOfBlock(w, adj).hasTag("unvoidable")) {
           w.tryMutateTypeOfBlock(adj[0], adj[1], airMat);
         }
       }
@@ -614,13 +716,13 @@ standardBlockTypes.push(new BlockType({
           } else {
             if (w.getRandomFloat() > 0.6) {
               w.trySetTypeOfBlock(c, i, flowerMat);
-            }else{
+            } else {
               w.trySetTypeOfBlock(c, i, plantMat);
             }
           }
         }
-      }else{
-        updateFall(updateStatic)(w,c,i);
+      } else {
+        updateFall(updateStatic)(w, c, i);
       }
     };
   },
@@ -632,6 +734,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#4f8"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.1]],
+  emission: Color.fromHex("#4f8"),
   tags: ["solid", "unstable", "unbreathable", "falling", "organic", "plant"],
   tickBehaviorGen: (world_init: World) => {
     const aboveCoords = [UP_LEFT, UP, UP_RIGHT];
@@ -662,19 +765,19 @@ standardBlockTypes.push(new BlockType({
             continue;
           }
 
-          if (w.getRandomFloat() > (nearPlant ? 0.6 : 0)) {
+          if (w.getRandomFloat() > (nearPlant ? 0.5 : 0)) {
             trySetBlock(w, above, seedMat);
             w.tryMutateTypeOfBlock(c, i, plantMat);
           } else {
             if (w.getRandomFloat() > 0.4) {
               w.trySetTypeOfBlock(c, i, flowerMat);
-            }else{
+            } else {
               w.trySetTypeOfBlock(c, i, plantMat);
             }
           }
         }
-      }else{
-        updateFall(updateStatic)(w,c,i);
+      } else {
+        updateFall(updateStatic)(w, c, i);
       }
     };
   },

@@ -7,6 +7,7 @@ type ChunkData = {
   // types: Uint8ClampedArray,
   // ids: Uint8ClampedArray
   data: Uint16Array,
+  lighting: Float32Array,
 }
 
 export default class MatrixClient extends WorldHandler {
@@ -34,7 +35,7 @@ export default class MatrixClient extends WorldHandler {
   private readonly chunkData: Map<PointStr, ChunkData> = new Map();
   private blockTypeNameIdMap: Map<string, number>;
 
-  public handleReceivedChunkData(coord: NPoint, data: Uint16Array): void {
+  public handleReceivedChunkData(coord: NPoint, data: Uint16Array, lighting: Float32Array): void {
     const hash = coord.toHash();
     // const existing = this.chunkData.get(hash);
     // if (existing === undefined) {
@@ -43,6 +44,7 @@ export default class MatrixClient extends WorldHandler {
       // ids: data.ids,
       // types: data.types,
       data: data,
+      lighting: lighting,
     });
     // } else {
 

@@ -56,7 +56,7 @@ export default class GridDisplay {
   // viewport dimensions, measured in chunks
   private dimsCh: NPoint = ZERO;
 
-  private pixelsPerBlock = 5;
+  private pixelsPerBlock = 12;
   private visiblePadding = 0;
 
   private visibleMin: NPoint | null = null;
@@ -75,7 +75,7 @@ export default class GridDisplay {
   private client: MatrixClient;
 
   //TODO make this not-readonly (need to create a new interval)
-  private readonly targetFPS = 30;
+  private readonly targetFPS = 20;
   private cacheBuffer = 0;
 
   private blockShaders: Array<BlockShaderFactorList> = [shader_missing];
@@ -241,6 +241,7 @@ export default class GridDisplay {
           [CHUNK_SIZE, CHUNK_BITSHIFT, chunkData.coord.x, chunkData.coord.y, limitedTimeMillis * 1.01],
           this.blockShaders,
           chunkData.data,
+          chunkData.lighting,
           // chunkData.types,
           // chunkData.ids
         );

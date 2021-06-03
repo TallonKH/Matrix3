@@ -5,6 +5,7 @@ import World from "../simulation/matrix-world";
 import WorldGenerator from "../simulation/matrix-worldgen";
 
 export class CheckerGen extends WorldGenerator {
+  private matSky = 0;
   private matAir = 0;
   private matGrass = 0;
   private matDirt = 0;
@@ -20,6 +21,7 @@ export class CheckerGen extends WorldGenerator {
   }
 
   public init(): boolean {
+    this.matSky = this.world.getBlockTypeIndex("Sky") ?? 0;
     this.matAir = this.world.getBlockTypeIndex("Air") ?? 0;
     this.matGrass = this.world.getBlockTypeIndex("Grass") ?? 0;
     this.matDirt = this.world.getBlockTypeIndex("Dirt") ?? 0;
@@ -29,6 +31,7 @@ export class CheckerGen extends WorldGenerator {
     this.matSand = this.world.getBlockTypeIndex("Sand") ?? 0;
     
     return (
+      this.matSky &
       this.matAir &
       this.matGrass &
       this.matDirt &
@@ -56,7 +59,7 @@ export class CheckerGen extends WorldGenerator {
         let block;
         // water level
         if (y > height) {
-          block = y > 0 ? this.matAir : this.matWater;
+          block = y > 0 ? this.matSky : this.matWater;
         } else {
           // caves
           if ((height > 5 || y < height - 6) && (cave > 0.5 && cave < 0.55)) {

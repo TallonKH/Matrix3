@@ -14,13 +14,24 @@ export const densityConstant: (val: number) => DensityFunc = (val) => (() => val
 interface BlockTypeArgs {
   name: string,
   color: Color,
+  emission?: Color,
+  opacity?: Color,
+  sunDiffusion?: Color,
+  sunEmission?: number,
+  sunOpacity?: number,
   tickBehaviorGen?: (world: World) => TickBehavior,
   randomTickBehaviorGen?: (world: World) => TickBehavior,
-  heatedBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
   tags?: Array<string>,
   numbers?: Array<[string, number]>,
+
 }
+
+const defaultEmission = new Color(0, 0, 0);
+const defaultOpacity = new Color(0.9, 0.9, 0.9);
+const defaultSunDiffusion = new Color(1, 1, 1);
+const defaultSunEmission = 0;
+const defaultSunOpacity = 0;
 
 export default class BlockType {
   public readonly name: string;
@@ -37,16 +48,25 @@ export default class BlockType {
   private readonly numbers: Map<string, number> = new Map();
   private densityFunc: DensityFunc;
   private initialized = false;
+  public readonly emission: Color;
+  public readonly opacity: Color;
+  public readonly sunDiffusion: Color;
+  public readonly sunEmission: number;
+  public readonly sunOpacity: number;
 
-  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, heatedBehaviorGen, densityFunc, tags, numbers }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, densityFunc, tags, numbers, emission, opacity, sunEmission, sunOpacity, sunDiffusion }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
+    this.emission = emission ?? defaultEmission;
+    this.opacity = opacity ?? defaultOpacity;
+    this.sunDiffusion = sunDiffusion ?? defaultSunDiffusion;
+    this.sunEmission = sunEmission ?? defaultSunEmission;
+    this.sunOpacity = sunOpacity ?? defaultSunOpacity;
+
     this.tickBehaviorGen = tickBehaviorGen;
     this.tickBehavior = updateStatic;
     this.randomTickBehaviorGen = randomTickBehaviorGen;
     this.randomTickBehavior = updateStatic;
-    this.heatedBehaviorGen = heatedBehaviorGen;
-    this.heatedBehavior = updateStatic;
     this.densityFunc = densityFunc ?? densityConstant(255);
     tags?.forEach((tag) => this.tags.add(tag));
     numbers?.forEach(([k, v]) => this.numbers.set(k, v));
@@ -56,7 +76,7 @@ export default class BlockType {
     return this.tags.has(tag);
   }
 
-  public getNumber(name: string): number | undefined{
+  public getNumber(name: string): number | undefined {
     return this.numbers.get(name);
   }
 
