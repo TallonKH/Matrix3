@@ -13,6 +13,7 @@ export type BlockShaderFactorMap = {
   mid2x?: number,
   timeFactor1?: number, timeScale1?: number, timeOffsetFactor1?: number,
   timeFactor2?: number, timeScale2?: number, timeOffsetFactor2?: number,
+  minBrightness?: number,
 }
 
 export type BlockShaderFactorList = [
@@ -22,6 +23,7 @@ export type BlockShaderFactorList = [
   number, number, // 12=mid1x, 13=mid2x
   number, number, number, // 14=time1 factor, 15=time1 scale, 16=time1 offset factor
   number, number, number, // 17=time2 factor, 18=time2 scale, 19=time2 offset factor
+  number, // 20=min brightness
 ];
 
 const shaderArgsToFactorList = (args: BlockShaderFactorMap): BlockShaderFactorList => {
@@ -33,6 +35,7 @@ const shaderArgsToFactorList = (args: BlockShaderFactorMap): BlockShaderFactorLi
     args.mid2x ?? 0.999,
     args.timeFactor1 ?? 0, args.timeScale1 ?? 0, args.timeOffsetFactor1 ?? 1,
     args.timeFactor2 ?? 0, args.timeScale2 ?? 0, args.timeOffsetFactor2 ?? 1,
+    args.minBrightness ?? 0.05,
   ];
 };
 

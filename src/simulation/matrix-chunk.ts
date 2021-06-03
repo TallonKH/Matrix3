@@ -27,9 +27,6 @@ export enum UpdateFlags {
 export type BlockLightFactorList = [
   number, number, number, // 0,1,2 emission r,g,b
   number, number, number, // 3,4,5 opacity r,g,b (how much surrounding blocks receive from it)
-  number, // 6 sunlight emission
-  number, // 7 sunlight opacity
-  number, number, number, // 8,9,10 sunlight diffusion r,g,b (how much sunlight affects regular light level) 
 ];
 
 /**

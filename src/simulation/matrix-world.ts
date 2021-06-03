@@ -375,9 +375,6 @@ export default class World {
     this.blockTypeLightFactors.push([
       ~~(type.emission.r * 255), ~~(type.emission.g * 255), ~~(type.emission.b * 255),
       type.opacity.r, type.opacity.g, type.opacity.b,
-      ~~(type.sunEmission * 255),
-      type.sunOpacity,
-      type.sunDiffusion.r, type.sunDiffusion.g, type.sunDiffusion.b,
     ]);
 
     return blockId;

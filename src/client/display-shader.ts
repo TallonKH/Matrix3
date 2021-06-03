@@ -30,9 +30,10 @@ function shaderFunction(this: IKernelFunctionThis, args: [number, number, number
   const mid2x = factors[type][13];
 
   const blocklight = light[i];
-  const blockLightR = Math.max(0.1, (blocklight & 0x000000ff) / 255);
-  const blockLightG = Math.max(0.1, ((blocklight & 0x0000ff00) >> 8) / 255);
-  const blockLightB = Math.max(0.1, ((blocklight & 0x00ff0000) >> 16) / 255);
+  const minBright = factors[type][20];
+  const blockLightR = Math.max(minBright, (blocklight & 0x000000ff) / 255);
+  const blockLightG = Math.max(minBright, ((blocklight & 0x0000ff00) >> 8) / 255);
+  const blockLightB = Math.max(minBright, ((blocklight & 0x00ff0000) >> 16) / 255);
 
   this.color(
     lerp4(

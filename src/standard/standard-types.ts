@@ -402,6 +402,7 @@ standardBlockTypes.push(new BlockType({
   densityFunc: densityConstant(250),
   numbers: [["acid-resistance", 1]],
   tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable"],
+  opacity: new Color(0, 0, 0),
   tickBehaviorGen: () => updateStatic,
 }));
 
@@ -707,7 +708,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#103"),
   tags: ["solid", "stable", "unbreathable", "invincible", "uncloneable", "void", "unvoidable"],
   densityFunc: densityConstant(250),
-  opacity: new Color(0.1, 0, 0.1),
+  opacity: new Color(0, 0, 0),
   emission: Color.fromHex("#300060"),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;

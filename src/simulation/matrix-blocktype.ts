@@ -16,9 +16,6 @@ interface BlockTypeArgs {
   color: Color,
   emission?: Color,
   opacity?: Color,
-  sunDiffusion?: Color,
-  sunEmission?: number,
-  sunOpacity?: number,
   tickBehaviorGen?: (world: World) => TickBehavior,
   randomTickBehaviorGen?: (world: World) => TickBehavior,
   densityFunc?: DensityFunc,
@@ -29,9 +26,6 @@ interface BlockTypeArgs {
 
 const defaultEmission = new Color(0, 0, 0);
 const defaultOpacity = new Color(0.9, 0.9, 0.9);
-const defaultSunDiffusion = new Color(1, 1, 1);
-const defaultSunEmission = 0;
-const defaultSunOpacity = 0;
 
 export default class BlockType {
   public readonly name: string;
@@ -50,18 +44,12 @@ export default class BlockType {
   private initialized = false;
   public readonly emission: Color;
   public readonly opacity: Color;
-  public readonly sunDiffusion: Color;
-  public readonly sunEmission: number;
-  public readonly sunOpacity: number;
 
-  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, densityFunc, tags, numbers, emission, opacity, sunEmission, sunOpacity, sunDiffusion }: BlockTypeArgs) {
+  constructor({ name, color, tickBehaviorGen, randomTickBehaviorGen, densityFunc, tags, numbers, emission, opacity }: BlockTypeArgs) {
     this.name = name;
     this.color = color;
     this.emission = emission ?? defaultEmission;
     this.opacity = opacity ?? defaultOpacity;
-    this.sunDiffusion = sunDiffusion ?? defaultSunDiffusion;
-    this.sunEmission = sunEmission ?? defaultSunEmission;
-    this.sunOpacity = sunOpacity ?? defaultSunOpacity;
 
     this.tickBehaviorGen = tickBehaviorGen;
     this.tickBehavior = updateStatic;

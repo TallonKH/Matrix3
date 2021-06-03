@@ -78,6 +78,7 @@ standardBlockShaders.set("Barrier", {
   min: Color.fromHex("#d55"),
   max: Color.fromHex("#e55"),
   timeFactor1: 1,
+  minBrightness: 1,
 });
 
 standardBlockShaders.set("Water", {
@@ -189,6 +190,7 @@ standardBlockShaders.set("Void", {
   timeFactor2: 0.1,
   timeOffsetFactor2: 1,
   timeScale2: 0.01,
+  minBrightness: 1,
 });
 
 standardBlockShaders.set("Scaffold", {
@@ -211,9 +213,12 @@ standardBlockShaders.set("Glass", {
 });
 
 standardBlockShaders.set("Darkstone", {
-  min: Color.fromHex("#223"),
-  max: Color.fromHex("#252535"),
+  min: Color.fromHex("#112"),
+  mid2: Color.fromHex("#151525"),
+  max: Color.fromHex("#2b1a26"),
+  mid2x: 0.95,
   timeFactor1: 1,
+  minBrightness: 1,
 });
 
 standardBlockShaders.set("Lamp", {
