@@ -15,6 +15,11 @@ body {
   margin: 0px;
 }
 
+.matrix-canvas {
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+}
+
 #main-container {
   width: 100%;
   height: 100%;

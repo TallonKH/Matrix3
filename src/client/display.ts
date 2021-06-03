@@ -89,6 +89,7 @@ export default class GridDisplay {
       return;
     }
     this.ctx = ctx;
+    this.canvas.classList.add("matrix-canvas");
     this.canvas.style.imageRendering = "pixelated";
     this.canvas.style.background = "none";
 
