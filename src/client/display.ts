@@ -128,8 +128,8 @@ export default class GridDisplay {
 
   private updateDims(): void {
     const rect = this.canvas.getBoundingClientRect();
-    const minDim = Math.min(rect.width, rect.height);
-    this.pixelsPerBlock = Math.ceil(minDim / 64);
+    const minDim = Math.max(rect.width, rect.height);
+    this.pixelsPerBlock = Math.ceil(minDim / 128);
     this.dims = new NPoint(rect.width, rect.height).divide1(this.pixelsPerBlock).round();
     this.dimsCh = this.dims.divide1(CHUNK_SIZE);
     this.canvas.width = this.dims.x;

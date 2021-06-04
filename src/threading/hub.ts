@@ -117,6 +117,7 @@ document.addEventListener("keydown", (e) => {
     //   break;
 
   }
+  e.preventDefault();
 });
 
 document.addEventListener("keyup", (e) => {
@@ -138,6 +139,7 @@ document.addEventListener("keyup", (e) => {
       panSpeed = 64;
       break;
   }
+  e.preventDefault();
 });
 
 const toolbarOuter = document.getElementById("toolbar-outer");
