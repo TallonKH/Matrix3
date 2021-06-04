@@ -1,10 +1,11 @@
 import { Color } from "../library";
-import { allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateDisplace1, updateFall, updateFlow } from "./standard-behaviors";
+import { ADJ_COORDS, allHaveTag, allTagsPresent, anyHaveAllTags, anyHaveTag, CORNER_COORDS, filterBlocksByType, getAdjacents, getAdjacentTypes, getNeighboringTypes, getNeighbors, getRelatives, getTypeOfBlock, getTypesOfBlocks, refHasTag, relativeHasTag, trySetBlock, updateCascade, updateCrumble, updateDisplace1, updateFall, updateFlow } from "./standard-behaviors";
 import BlockType, { densityConstant, TickBehavior, updateStatic } from "../simulation/matrix-blocktype";
 import World from "../simulation/matrix-world";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { DOWN, LEFT, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
-import Chunk from "../simulation/matrix-chunk";
+import Chunk, { UpdateFlags } from "../simulation/matrix-chunk";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK } from "../matrix-common";
 
 export const standardBlockTypes: Array<BlockType> = [];
 
@@ -91,6 +92,146 @@ standardBlockTypes.push(new BlockType({
     }
   },
   randomTickBehaviorGen: () => updateFlow(0.05, updateStatic),
+}));
+
+
+standardBlockTypes.push(new BlockType({
+  name: "Labyrium",
+  color: Color.fromHex("#ffbb45"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.95]],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  emission: Color.fromHex("#ff0000"),
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      if (((i & CHUNK_MODMASK) & 1) === 0 && ((i >> CHUNK_BITSHIFT) & 1) === 0) {
+        w.trySetTypeOfBlock(c, i, airMat);
+        return;
+      }
+      let adjs = 0;
+      for (const adj of getAdjacents(c, i)) {
+        if (adj[0].getFlagOfBlock(adj[1], UpdateFlags.LOCKED)) {
+          continue;
+        }
+
+        if (refHasTag(w, adj, "maze-forming")) {
+          adjs++;
+        }
+      }
+      if (adjs === 0) {
+        w.trySetTypeOfBlock(c, i, airMat);
+      }
+    };
+  },
+  randomTickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      if ((((i & CHUNK_MODMASK) & 1) === 1) && (((i >> CHUNK_BITSHIFT) & 1) === 1)) {
+        return;
+      }
+
+      let corns = 0;
+      for (const corn of getRelatives(c, i, CORNER_COORDS)) {
+        if (corn[0].getFlagOfBlock(corn[1], UpdateFlags.LOCKED)) {
+          continue;
+        }
+
+        if (refHasTag(w, corn, "maze-forming")) {
+          corns++;
+        }
+      }
+
+      let adjs = 0;
+      for (const adj of getAdjacents(c, i)) {
+        if (adj[0].getFlagOfBlock(adj[1], UpdateFlags.LOCKED)) {
+          continue;
+        }
+
+        if (refHasTag(w, adj, "maze-forming")) {
+          adjs++;
+        }
+      }
+      if (adjs !== 2 || corns > 2) {
+        w.trySetTypeOfBlock(c, i, airMat);
+      }
+    };
+  },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Lattium",
+  color: Color.fromHex("#a4f759"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.95]],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  emission: Color.fromHex("#00ff00"),
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      if (((i & CHUNK_MODMASK) & 1) === 0 || ((i >> CHUNK_BITSHIFT) & 1) === 0) {
+        w.trySetTypeOfBlock(c, i, airMat);
+        return;
+      }
+    };
+  },
+}));
+
+standardBlockTypes.push(new BlockType({
+  name: "Compartium",
+  color: Color.fromHex("#a8fff3"),
+  densityFunc: densityConstant(200),
+  numbers: [["acid-resistance", 0.95]],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  emission: Color.fromHex("#0000ff"),
+  tickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      if (((i & CHUNK_MODMASK) & 1) === 0 && ((i >> CHUNK_BITSHIFT) & 1) === 0) {
+        w.trySetTypeOfBlock(c, i, airMat);
+        return;
+      }
+      let adjs = 0;
+      for (const adj of getAdjacents(c, i)) {
+        if (refHasTag(w, adj, "maze-forming")) {
+          adjs++;
+        }
+      }
+      if (adjs < 2) {
+        w.trySetTypeOfBlock(c, i, airMat);
+      }
+    };
+  },
+  randomTickBehaviorGen: (world_init) => {
+    const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
+
+    return (w, c, i) => {
+      if ((((i & CHUNK_MODMASK) & 1) === 1) && (((i >> CHUNK_BITSHIFT) & 1) === 1)) {
+        return;
+      }
+
+      let corns = 0;
+      for (const corn of getRelatives(c, i, CORNER_COORDS)) {
+        if (refHasTag(w, corn, "maze-forming")) {
+          corns++;
+        }
+      }
+
+      let adjs = 0;
+      for (const adj of getAdjacents(c, i)) {
+        if (refHasTag(w, adj, "maze-forming")) {
+          adjs++;
+        }
+      }
+      if (adjs !== 2 || corns > 2) {
+        w.trySetTypeOfBlock(c, i, airMat);
+      }
+    };
+  },
 }));
 
 standardBlockTypes.push(new BlockType({
@@ -505,7 +646,7 @@ standardBlockTypes.push(new BlockType({
   name: "Firefly",
   color: Color.fromHex("#ffe252"),
   densityFunc: densityConstant(50),
-  emission: Color.fromHex("#cfbc5e"),
+  emission: Color.fromHex("#6e6641"),
   numbers: [["acid-resistance", 0]],
   tags: ["solid", "unstable", "unbreathable", "wandering", "organic", "non-sky-blocking"],
   opacity: new Color(0.95, 0.95, 0.95),
@@ -535,7 +676,7 @@ standardBlockTypes.push(new BlockType({
   name: "Acid",
   color: Color.fromHex("#26d15f"),
   densityFunc: densityConstant(120),
-  emission: Color.fromHex("#60ff20"),
+  emission: Color.fromHex("#329c08"),
   numbers: [["acid-resistance", 1]],
   tags: ["fluid", "unbreathable", "liquid", "falling", "unstable"],
   tickBehaviorGen: (world_init) => {

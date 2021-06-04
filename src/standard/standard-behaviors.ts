@@ -87,6 +87,10 @@ export const relativeHasTag = (w: World, c: Chunk, i: number, ox: number, oy: nu
   return getTypeOfBlock(w, adj).hasTag(tag);
 };
 
+export const refHasTag = (w: World, rel: [Chunk, number], tag: string): boolean => {
+  return w.getBlockType(rel[0].getTypeIndexOfBlock(rel[1])).hasTag(tag);
+};
+
 
 /**
 * Returns `true` iff the specified relative block has all specified tags.

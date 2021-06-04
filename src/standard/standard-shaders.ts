@@ -25,6 +25,42 @@ standardBlockShaders.set("Pitch", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("Labyrium", {
+  min: Color.fromHex("#ffbb45"),
+  max: Color.fromHex("#ffe066"),
+  minBrightness: 1,
+  timeFactor1: 0.7,
+  timeOffsetFactor1: 0,
+  timeScale1: 0.0005,
+  timeFactor2: 0.3,
+  timeOffsetFactor2: 0.03,
+  timeScale2: 0.0004,
+});
+
+standardBlockShaders.set("Lattium", {
+  min: Color.fromHex("#a4f759"),
+  max: Color.fromHex("#d6ff9c"),
+  minBrightness: 1,
+  timeFactor1: 0.7,
+  timeOffsetFactor1: 0,
+  timeScale1: 0.0005,
+  timeFactor2: 0.3,
+  timeOffsetFactor2: 0.03,
+  timeScale2: 0.0004,
+});
+
+standardBlockShaders.set("Compartium", {
+  min: Color.fromHex("#70d9ff"),
+  max: Color.fromHex("#a8fff3"),
+  minBrightness: 1,
+  timeFactor1: 0.7,
+  timeOffsetFactor1: 0,
+  timeScale1: 0.0005,
+  timeFactor2: 0.3,
+  timeOffsetFactor2: 0.03,
+  timeScale2: 0.0004,
+});
+
 standardBlockShaders.set("Grass", {
   min: Color.fromHex("#3ecb10"),
   max: Color.fromHex("#57cf02"),
@@ -109,6 +145,7 @@ standardBlockShaders.set("Firefly", {
   min: Color.fromHex("#f5cd3d"),
   mid2: Color.fromHex("#ffe252"),
   max: Color.fromHex("#fff8cf"),
+  minBrightness: 0.9,
   mid2x: 0.98,
   timeFactor1: 0.95,
   timeFactor2: 0.05,
