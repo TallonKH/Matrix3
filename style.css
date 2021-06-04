@@ -22,23 +22,24 @@ body {
 }
 
 #hints {
+  font-weight: lighter;
   background-color: #222;
   color: #eee;
-  padding: 10px;
+  padding: 20px;
+  padding-bottom: 40px;
+  padding-left: 5vw;
+  padding-right: 5vw;
   font-size: larger;
 }
 
 #hints a {
+  font-weight: normal;
   color: #8ffdff;
   transition: all 0.2s;
 }
 
-#hints a:visited {
-  color: #cda1ff;
-}
-
 #hints a:hover {
-  text-shadow: 0px 0px 2px #eee;
+  text-shadow: 0px 0px 2px #71cfd1;
 }
 
 #main-container {
