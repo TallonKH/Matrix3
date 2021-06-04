@@ -29,9 +29,10 @@ function adjColor(selfLight: number, edgeLight: number, factor: number): [number
 }
 
 function lightFunction(this: This, light: Float32Array, edgeLight: Float32Array, blockdata: Uint16Array, factors: BlockLightFactorList[]): number {
-  const chunk_size = this.constants.chunk_size;
-  const chunk_modmask = this.constants.chunk_modmask;
-  const chunk_bitshift = this.constants.chunk_bitshift;
+  // why is >>0 necessary? no fucking clue. Math.floor doesn't fix it. ~~ doesn't fix it either.
+  const chunk_size = this.constants.chunk_size >> 0;
+  const chunk_modmask = this.constants.chunk_modmask >> 0;
+  const chunk_bitshift = this.constants.chunk_bitshift >> 0;
 
   const i = this.thread.x;
   const x = i & chunk_modmask;
@@ -65,21 +66,17 @@ function lightFunction(this: This, light: Float32Array, edgeLight: Float32Array,
     withinChunk(x + 1, chunk_size)
   );
 
-  const blocktype = blockdata[i] & 0xff;
-
+  const blocktype = Math.floor(blockdata[i] & 0xff);
   return (
-    Math.floor(
-      Math.max(
-        factors[blocktype][0],
-        factors[blocktype][3] * Math.max(adjUp[0], Math.max(adjDown[0], Math.max(adjLeft[0], adjRight[0]))))) |
-    (Math.floor(
-      Math.max(
-        factors[blocktype][1],
-        factors[blocktype][4] * Math.max(adjUp[1], Math.max(adjDown[1], Math.max(adjLeft[1], adjRight[1]))))) << 8) |
-    (Math.floor(
-      Math.max(
-        factors[blocktype][2],
-        factors[blocktype][5] * Math.max(adjUp[2], Math.max(adjDown[2], Math.max(adjLeft[2], adjRight[2]))))) << 16)
+    (Math.floor(Math.max(
+      factors[blocktype][0],
+      factors[blocktype][3] * Math.max(adjUp[0], Math.max(adjDown[0], Math.max(adjLeft[0], adjRight[0])))))) |
+    (Math.floor(Math.max(
+      factors[blocktype][1],
+      factors[blocktype][4] * Math.max(adjUp[1], Math.max(adjDown[1], Math.max(adjLeft[1], adjRight[1])))) << 8)) |
+    (Math.floor(Math.max(
+      factors[blocktype][2],
+      factors[blocktype][5] * Math.max(adjUp[2], Math.max(adjDown[2], Math.max(adjLeft[2], adjRight[2]))))) << 16)
   );
 }
 
