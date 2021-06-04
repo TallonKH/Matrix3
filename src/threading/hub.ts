@@ -56,7 +56,7 @@ let upKeyDown = false;
 let downKeyDown = false;
 let shiftKeyDown = false;
 
-const panSpeed = -64;
+let panSpeed = 32;
 let drawRadius = 3;
 let drawType1 = standardBlockTypes.findIndex((bt) => bt.name === "Dirt") + 1;
 let drawType2 = standardBlockTypes.findIndex((bt) => bt.name === "Air") + 1;
@@ -77,6 +77,7 @@ document.addEventListener("keydown", (e) => {
       break;
     case "Shift":
       shiftKeyDown = true;
+      panSpeed = 128;
       break;
     case "0":
       drawRadius = 0;
@@ -134,6 +135,7 @@ document.addEventListener("keyup", (e) => {
       break;
     case "Shift":
       shiftKeyDown = false;
+      panSpeed = 64;
       break;
   }
 });
@@ -280,16 +282,16 @@ window.setInterval(() => {
   server.performGlobalLightTick();
   let newViewOrigin = mainDisplay.getViewOrigin();
   if (leftKeyDown) {
-    newViewOrigin = newViewOrigin.add2(-panSpeed, 0);
-  }
-  if (rightKeyDown) {
     newViewOrigin = newViewOrigin.add2(panSpeed, 0);
   }
+  if (rightKeyDown) {
+    newViewOrigin = newViewOrigin.add2(-panSpeed, 0);
+  }
   if (upKeyDown) {
-    newViewOrigin = newViewOrigin.add2(0, -panSpeed);
+    newViewOrigin = newViewOrigin.add2(0, panSpeed);
   }
   if (downKeyDown) {
-    newViewOrigin = newViewOrigin.add2(0, panSpeed);
+    newViewOrigin = newViewOrigin.add2(0, -panSpeed);
   }
   if (!newViewOrigin.equals(mainDisplay.getViewOrigin())) {
     mainDisplay.setViewOrigin(newViewOrigin);
