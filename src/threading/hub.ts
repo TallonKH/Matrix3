@@ -200,24 +200,23 @@ mainDisplay.canvas.oncontextmenu = (e) => {
 const drawFunc = (e: MouseEvent) => {
   if (mouse1Down || mouse2Down) {
     const pos = mainDisplay.offsetPosToBlockPos(e.offsetX, e.offsetY);
-    const drawMat = (mouse1Down && mouse2Down)
-      ? (Math.random() > 0.5 ? drawType1 : drawType2)
-      : (mouse1Down ? drawType1 : drawType2);
+    const drawMat = mouse1Down ? drawType1 : drawType2;
+    const replaceMat = shiftKeyDown ? (mouse1Down ? drawType2 : drawType1) : -1;
     if (pos !== null) {
-      const requests: Array<[number, number, number]> = [];
+      const requests: Array<[number, number, number, number]> = [];
       switch (drawRadius) {
         case 0:
-          requests.push([pos.x, pos.y, drawMat]);
+          requests.push([pos.x, pos.y, drawMat, replaceMat]);
           break;
         case 1:
           for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
-              requests.push([pos.x + dx, pos.y + dy, drawMat]);
+              requests.push([pos.x + dx, pos.y + dy, drawMat, replaceMat]);
             }
           }
           break;
         default:
-          pixelCircle(pos.x, pos.y, drawRadius, (x, y) => requests.push([x, y, drawMat]));
+          pixelCircle(pos.x, pos.y, drawRadius, (x, y) => requests.push([x, y, drawMat, replaceMat]));
           break;
       }
       server.forwardSetBlockRequests(requests);

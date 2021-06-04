@@ -1,7 +1,6 @@
-import { Texture, IKernelRunShortcutBase, KernelOutput } from "gpu.js";
 import { NPoint, PointStr } from "../lib/NLib/npoint";
 import { ANTIDIRS, Color, DIRECTIONS, iterFilter, mixRands, Neighbors, shuffleArray } from "../library";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZE2m1, CHUNK_SIZEm1 } from "../matrix-common";
+import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE, CHUNK_SIZE2, CHUNK_SIZEm1 } from "../matrix-common";
 import WorldHandler from "../world-handler";
 import getLightKernel from "./light-shader";
 import BlockType from "./matrix-blocktype";
@@ -187,9 +186,11 @@ export default class World {
     }
   }
 
-  public pushClientBlockChangeRequest(chunk: Chunk, i: number, btype: number): void {
-    chunk.pendingClientChanges.push([i, btype]);
-    this.queueNeighbors(chunk, i, true);
+  public pushClientBlockChangeRequest(chunk: Chunk, i: number, btype: number, rtype: number): void {
+    if(rtype === -1 || chunk.getTypeIndexOfBlock(i) === rtype){
+      chunk.pendingClientChanges.push([i, btype]);
+      this.queueNeighbors(chunk, i, true);
+    }
   }
 
   /**
@@ -271,7 +272,7 @@ export default class World {
   }
 
   public performGlobalLightUpdate(): void {
-    for (const [co, chunk] of this.loadedChunks) {
+    for (const [, chunk] of this.loadedChunks) {
       this.performLightUpdate(chunk);
     }
   }

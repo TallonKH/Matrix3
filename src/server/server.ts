@@ -3,7 +3,7 @@ import WorldHandler from "../world-handler";
 import World from "../simulation/matrix-world";
 import WorldGenerator from "../simulation/matrix-worldgen";
 import BlockType from "../simulation/matrix-blocktype";
-import { CHUNK_BITSHIFT, CHUNK_MODMASK, CHUNK_SIZE } from "../matrix-common";
+import { CHUNK_BITSHIFT, CHUNK_SIZE } from "../matrix-common";
 import { mod } from "../library";
 
 export default class MatrixServer extends WorldHandler {
@@ -63,8 +63,8 @@ export default class MatrixServer extends WorldHandler {
   }
 
   // index, type id
-  public forwardSetBlockRequests(changes: [number, number, number][]): void {
-    for (const [x, y, btype] of changes) {
+  public forwardSetBlockRequests(changes: [number, number, number, number][]): void {
+    for (const [x, y, btype, rtype] of changes) {
       const cx = Math.floor(x / CHUNK_SIZE);
       const cy = Math.floor(y / CHUNK_SIZE);
       const chunk = this.world.getChunk(cx, cy);
@@ -75,7 +75,7 @@ export default class MatrixServer extends WorldHandler {
         // chunk.setNextTypeOfBlock((bx + (by << CHUNK_BITSHIFT)), 4);
         // chunk.applyNexts();
         // TODO: figure out why this does not chang anything, but above (commented) code does
-        this.world.pushClientBlockChangeRequest(chunk, bx + (by << CHUNK_BITSHIFT), btype);
+        this.world.pushClientBlockChangeRequest(chunk, bx + (by << CHUNK_BITSHIFT), btype, rtype);
         // this.world.trySetTypeOfBlock(chunk, , true);
       }
     }
