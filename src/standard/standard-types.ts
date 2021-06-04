@@ -57,7 +57,6 @@ standardBlockTypes.push(new BlockType({
   opacity: new Color(0.99, 0.99, 0.99),
 }));
 
-
 standardBlockTypes.push(new BlockType({
   name: "Gravel",
   color: Color.fromHex("#5a5452"),
@@ -76,6 +75,22 @@ standardBlockTypes.push(new BlockType({
       }
     };
   },
+}));
+
+
+standardBlockTypes.push(new BlockType({
+  name: "Pitch",
+  color: Color.fromHex("#0a011c"),
+  densityFunc: densityConstant(150),
+  numbers: [["acid-resistance", 0.6]],
+  tags: ["liquid", "fluid", "unstable", "unbreathable", "falling"],
+  opacity: new Color(0.1, 0.1, 0.1),
+  tickBehaviorGen: () => (w, c, i) => {
+    if (!anyHaveTag(getAdjacentTypes(w, c, i), "solid")) {
+      updateFall(updateStatic)(w, c, i);
+    }
+  },
+  randomTickBehaviorGen: () => updateFlow(0.05, updateStatic),
 }));
 
 standardBlockTypes.push(new BlockType({

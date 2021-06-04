@@ -19,6 +19,12 @@ standardBlockShaders.set("Gravel", {
   timeFactor1: 1,
 });
 
+standardBlockShaders.set("Pitch", {
+  min: Color.fromHex("#0a011c"),
+  max: Color.fromHex("#0b031e"),
+  timeFactor1: 1,
+});
+
 standardBlockShaders.set("Grass", {
   min: Color.fromHex("#3ecb10"),
   max: Color.fromHex("#57cf02"),
