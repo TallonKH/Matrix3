@@ -65,15 +65,19 @@ document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowLeft":
       leftKeyDown = true;
+      e.preventDefault();
       break;
     case "ArrowRight":
       rightKeyDown = true;
+      e.preventDefault();
       break;
     case "ArrowUp":
       upKeyDown = true;
+      e.preventDefault();
       break;
     case "ArrowDown":
       downKeyDown = true;
+      e.preventDefault();
       break;
     case "Shift":
       shiftKeyDown = true;
@@ -117,7 +121,6 @@ document.addEventListener("keydown", (e) => {
     //   break;
 
   }
-  e.preventDefault();
 });
 
 document.addEventListener("keyup", (e) => {
@@ -139,7 +142,6 @@ document.addEventListener("keyup", (e) => {
       panSpeed = 64;
       break;
   }
-  e.preventDefault();
 });
 
 const toolbarOuter = document.getElementById("toolbar-outer");
@@ -237,13 +239,13 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   button.innerHTML = btype.name;
   button.addEventListener("mouseup", (e) => {
     if (e.button === 0) {
-      for (const [_, other] of buttons) {
+      for (const [, other] of buttons) {
         other.classList.remove("selected-primary");
       }
       button.classList.add("selected-primary");
       drawType1 = i + 1;
     } else if (e.button === 2) {
-      for (const [_, other] of buttons) {
+      for (const [, other] of buttons) {
         other.classList.remove("selected-secondary");
       }
       button.classList.add("selected-secondary");
@@ -262,7 +264,7 @@ for (let i = 0; i < standardBlockTypes.length; i++) {
   };
 }
 
-buttons.sort(([a, _], [b, __]) => {
+buttons.sort(([a,], [b,]) => {
   const aHSL = a.color.toHSL();
   const bHSL = b.color.toHSL();
   const h = aHSL[0] - bHSL[0];
@@ -271,7 +273,7 @@ buttons.sort(([a, _], [b, __]) => {
   return Math.round(h * 7) || s || l;
 });
 
-for (const [_, button] of buttons) {
+for (const [, button] of buttons) {
   blocktypeContainer.appendChild(button);
 }
 

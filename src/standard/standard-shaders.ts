@@ -28,7 +28,7 @@ standardBlockShaders.set("Pitch", {
 standardBlockShaders.set("Labyrium", {
   min: Color.fromHex("#ffbb45"),
   max: Color.fromHex("#ffe066"),
-  minBrightness: 1,
+  minBrightness: 0.8,
   timeFactor1: 0.7,
   timeOffsetFactor1: 0,
   timeScale1: 0.0005,
@@ -40,7 +40,7 @@ standardBlockShaders.set("Labyrium", {
 standardBlockShaders.set("Lattium", {
   min: Color.fromHex("#a4f759"),
   max: Color.fromHex("#d6ff9c"),
-  minBrightness: 1,
+  minBrightness: 0.8,
   timeFactor1: 0.7,
   timeOffsetFactor1: 0,
   timeScale1: 0.0005,
@@ -52,7 +52,7 @@ standardBlockShaders.set("Lattium", {
 standardBlockShaders.set("Compartium", {
   min: Color.fromHex("#70d9ff"),
   max: Color.fromHex("#a8fff3"),
-  minBrightness: 1,
+  minBrightness: 0.8,
   timeFactor1: 0.7,
   timeOffsetFactor1: 0,
   timeScale1: 0.0005,
@@ -248,6 +248,37 @@ standardBlockShaders.set("Steam", {
   max: Color.fromHex("#e8e8e8"),
   timeFactor1: 1,
   timeScale1: 0.01,
+});
+
+standardBlockShaders.set("Fire", {
+  min: Color.fromHex("#ff3612"),
+  mid1: Color.fromHex("#ff5e14"),
+  mid2: Color.fromHex("#ffad14"),
+  max: Color.fromHex("#fffc47"),
+  mid1x: 0.2,
+  mid2x: 0.8,
+  minBrightness: 1,
+  timeFactor1: 1,
+  timeOffsetFactor1: 1,
+  timeScale1: 0.004,
+});
+
+standardBlockShaders.set("Smoke", {
+  min: Color.fromHex("#444"),
+  mid1: Color.fromHex("#555"),
+  mid2: Color.fromHex("#666"),
+  max: Color.fromHex("#777"),
+  mid1x: 0.2,
+  mid2x: 0.8,
+  timeFactor1: 1,
+  timeOffsetFactor1: 1,
+  timeScale1: 0.001,
+});
+
+standardBlockShaders.set("Ash", {
+  min: Color.fromHex("#333"),
+  max: Color.fromHex("#444"),
+  timeFactor1: 1,
 });
 
 standardBlockShaders.set("Glass", {

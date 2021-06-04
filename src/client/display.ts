@@ -1,4 +1,4 @@
-import { CHUNK_SIZE, CHUNK_BITSHIFT, CHUNK_MODMASK } from "../matrix-common";
+import { CHUNK_SIZE, CHUNK_BITSHIFT } from "../matrix-common";
 import { NPoint, ZERO } from "../lib/NLib/npoint";
 import getShaderKernel from "./display-shader";
 import { Color } from "../library";

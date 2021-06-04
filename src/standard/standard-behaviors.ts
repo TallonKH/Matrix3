@@ -2,7 +2,6 @@ import BlockType, { TickBehavior } from "../simulation/matrix-blocktype";
 import Chunk, { UpdateFlags } from "../simulation/matrix-chunk";
 import { DOWN, DOWN_LEFT, DOWN_RIGHT, LEFT, NPoint, RIGHT, UP, UP_LEFT, UP_RIGHT } from "../lib/NLib/npoint";
 import World from "../simulation/matrix-world";
-import { iterMap } from "../library";
 
 export const ADJ_COORDS = [LEFT, RIGHT, UP, DOWN];
 export const CORNER_COORDS = [DOWN_LEFT, DOWN_RIGHT, UP_LEFT, UP_RIGHT];
