@@ -47,42 +47,40 @@ function lightFunction(this: This, light: Float32Array, edgeLight: Float32Array,
   // light below
   const adjDown = adjColor(
     light[x + (((y - 1) & chunk_modmask) << chunk_bitshift)],
-    edgeLight[chunk_size + x], 
+    edgeLight[chunk_size + x],
     withinChunk(y - 1, chunk_size)
   );
 
   // light left
   const adjLeft = adjColor(
     light[((x - 1) & chunk_modmask) + (y << chunk_bitshift)],
-    edgeLight[chunk_size + chunk_size + y], 
+    edgeLight[chunk_size + chunk_size + y],
     withinChunk(x - 1, chunk_size)
   );
 
   // light right
   const adjRight = adjColor(
     light[((x + 1) & chunk_modmask) + (y << chunk_bitshift)],
-    edgeLight[chunk_size + chunk_size + chunk_size + y], 
+    edgeLight[chunk_size + chunk_size + chunk_size + y],
     withinChunk(x + 1, chunk_size)
   );
 
   const blocktype = blockdata[i] & 0xff;
 
-  const col = [
+  return (
     Math.floor(
       Math.max(
         factors[blocktype][0],
-        factors[blocktype][3] * Math.max(adjUp[0], Math.max(adjDown[0], Math.max(adjLeft[0], adjRight[0]))))),
-    Math.floor(
+        factors[blocktype][3] * Math.max(adjUp[0], Math.max(adjDown[0], Math.max(adjLeft[0], adjRight[0]))))) |
+    (Math.floor(
       Math.max(
         factors[blocktype][1],
-        factors[blocktype][4] * Math.max(adjUp[1], Math.max(adjDown[1], Math.max(adjLeft[1], adjRight[1]))))),
-    Math.floor(
+        factors[blocktype][4] * Math.max(adjUp[1], Math.max(adjDown[1], Math.max(adjLeft[1], adjRight[1]))))) << 8) |
+    (Math.floor(
       Math.max(
         factors[blocktype][2],
-        factors[blocktype][5] * Math.max(adjUp[2], Math.max(adjDown[2], Math.max(adjLeft[2], adjRight[2]))))),
-  ];
-
-  return col[0] | (col[1] << 8) | (col[2] << 16);// | (col[3] << 24);
+        factors[blocktype][5] * Math.max(adjUp[2], Math.max(adjDown[2], Math.max(adjLeft[2], adjRight[2]))))) << 16)
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

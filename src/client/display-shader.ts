@@ -31,13 +31,12 @@ function shaderFunction(this: IKernelFunctionThis, args: [number, number, number
 
   const blocklight = light[i];
   const minBright = factors[type][20];
-  const blockLightR = Math.max(minBright, ((blocklight) & 0xff) / 255);
-  const blockLightG = Math.max(minBright, ((blocklight >> 8) & 0xff) / 255);
-  const blockLightB = Math.max(minBright, ((blocklight >> 16) & 0xff) / 255);
+
   // this.color(
-  //   (blocklight & 0x000000ff) / 255,
-  //   ((blocklight & 0x0000ff00) >> 8) / 255,
-  //   ((blocklight & 0x00ff0000) >> 16) / 255, 1
+  //   ((blocklight) & 0xff) / 255,
+  //   ((blocklight >> 8) & 0xff) / 255,
+  //   ((blocklight >> 16) & 0xff) / 255,
+  //   1
   // );
 
   // const blockTemp = ((blocklight >> 24) & 0xff) / 255;
@@ -48,25 +47,31 @@ function shaderFunction(this: IKernelFunctionThis, args: [number, number, number
   //   1
   // );
 
-  this.color(
+  this.color((
     lerp4(
       factors[type][0],   // min r
       factors[type][1],   // mid1 r
       factors[type][2],   // mid2 r
       factors[type][3],   // max r
-      mid1x, mid2x, factor) * blockLightR,
+      mid1x, mid2x, factor
+    ) * Math.max(minBright, ((blocklight) & 0xff) / 255)
+  ), (
     lerp4(
       factors[type][4],   // min g
       factors[type][5],   // mid1 g
       factors[type][6],   // mid2 g
       factors[type][7],   // max g
-      mid1x, mid2x, factor) * blockLightG,
+      mid1x, mid2x, factor
+    ) * Math.max(minBright, ((blocklight >> 8) & 0xff) / 255)
+  ), (
     lerp4(
       factors[type][8],   // min b
       factors[type][9],   // mid1 b
       factors[type][10],  // mid2 b
       factors[type][11],  // max b
-      mid1x, mid2x, factor) * blockLightB,
+      mid1x, mid2x, factor
+    ) * Math.max(minBright, ((blocklight >> 16) & 0xff) / 255)
+  ),
     1
   );
 }

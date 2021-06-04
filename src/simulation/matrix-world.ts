@@ -283,54 +283,54 @@ export default class World {
     }
 
     // light values at edges of adjacent chunks
-    const edges = new Float32Array(CHUNK_SIZE * 4);
+    const lightEdges = new Float32Array(CHUNK_SIZE * 4);
 
     const upperChunk = chunk.neighbors[Neighbors.UP];
     if (upperChunk !== null) {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[i] = upperChunk.lighting[i];
+        lightEdges[i] = upperChunk.lighting[i];
       }
     } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[i] = 0;
+        lightEdges[i] = 0;//chunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
       }
     }
     const lowerChunk = chunk.neighbors[Neighbors.DOWN];
     if (lowerChunk !== null) {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[CHUNK_SIZE + i] = lowerChunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
+        lightEdges[CHUNK_SIZE + i] = lowerChunk.lighting[i + CHUNK_SIZE * CHUNK_SIZEm1];
       }
     } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[CHUNK_SIZE + i] = 0;
+        lightEdges[CHUNK_SIZE + i] = 0;//chunk.lighting[i];
       }
     }
     const leftChunk = chunk.neighbors[Neighbors.LEFT];
     if (leftChunk !== null) {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
+        lightEdges[(CHUNK_SIZE * 2) + i] = leftChunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
       }
     } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE * 2) + i] = 0;
+        lightEdges[(CHUNK_SIZE * 2) + i] = 0;//chunk.lighting[i << CHUNK_BITSHIFT];
       }
     }
     const rightChunk = chunk.neighbors[Neighbors.RIGHT];
     if (rightChunk !== null) {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE * 3) + i] = rightChunk.lighting[i << CHUNK_BITSHIFT];
+        lightEdges[(CHUNK_SIZE * 3) + i] = rightChunk.lighting[i << CHUNK_BITSHIFT];
       }
     } else {
       for (let i = 0; i < CHUNK_SIZE; i++) {
-        edges[(CHUNK_SIZE * 3) + i] = 0;
+        lightEdges[(CHUNK_SIZE * 3) + i] = 0;//chunk.lighting[((i + 1) << CHUNK_BITSHIFT) - 1];
       }
     }
 
 
-    const piped = this.pipelineLightKernel(chunk.lighting, edges, chunk.getBlockData(), this.blockTypeLightFactors);
+    const piped = this.pipelineLightKernel(chunk.lighting, lightEdges, chunk.getBlockData(), this.blockTypeLightFactors);
     chunk.lighting = this.outputLightKernel(
       piped,
-      edges,
+      lightEdges,
       chunk.getBlockData(),
       this.blockTypeLightFactors);
 
