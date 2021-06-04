@@ -414,8 +414,15 @@ standardBlockTypes.push(new BlockType({
     const dirtMat = world_init.getBlockTypeIndex("Dirt") ?? 0;
 
     return (w, c, i) => {
+      const adjs = Array.from(getAdjacentTypes(w, c, i));
+      // if hot, become dirt
+      if (anyHaveTag(adjs, "hot") || anyHaveTag(adjs, "freezer")) {
+        w.tryMutateTypeOfBlock(c, i, dirtMat);
+        return;
+      }
+
       // if lacking air or soil, become dirt sometimes
-      if (w.getRandomFloat() > 0.9 && !allTagsPresent(Array.from(getAdjacentTypes(w, c, i)), ["soil", "breathable"])) {
+      if (w.getRandomFloat() > 0.9 && !allTagsPresent(adjs, ["soil", "breathable"])) {
         w.tryMutateTypeOfBlock(c, i, dirtMat);
         return;
       }
