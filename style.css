@@ -67,6 +67,7 @@ body {
 }
 
 #toolbar-outer {
+  overscroll-behavior-y: none;
   position: absolute;
   right: 0px;
   overflow-y: scroll;
