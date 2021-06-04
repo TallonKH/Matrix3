@@ -100,7 +100,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#ffbb45"),
   densityFunc: densityConstant(200),
   numbers: [["acid-resistance", 0.95]],
-  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune", "uncloneable"],
   emission: Color.fromHex("#ff0000"),
   tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -166,7 +166,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#a4f759"),
   densityFunc: densityConstant(200),
   numbers: [["acid-resistance", 0.95]],
-  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune", "uncloneable"],
   emission: Color.fromHex("#00ff00"),
   tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -185,7 +185,7 @@ standardBlockTypes.push(new BlockType({
   color: Color.fromHex("#a8fff3"),
   densityFunc: densityConstant(200),
   numbers: [["acid-resistance", 0.95]],
-  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune"],
+  tags: ["solid", "stable", "unbreathable", "maze-forming", "goo-immune", "uncloneable"],
   emission: Color.fromHex("#0000ff"),
   tickBehaviorGen: (world_init) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
@@ -826,6 +826,7 @@ standardBlockTypes.push(new BlockType({
   numbers: [["acid-resistance", 1]],
   tags: ["solid", "stable", "unbreathable", "invincible", "cloner-killable", "uncloneable", "cloner"],
   densityFunc: densityConstant(200),
+  emission: Color.fromHex("#043f40"),
   tickBehaviorGen: (world_init: World) => {
     const airMat = world_init.getBlockTypeIndex("Air") ?? 0;
 
