@@ -139,7 +139,7 @@ document.addEventListener("keyup", (e) => {
       break;
     case "Shift":
       shiftKeyDown = false;
-      panSpeed = 64;
+      panSpeed = 32;
       break;
   }
 });

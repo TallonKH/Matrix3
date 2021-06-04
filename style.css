@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+  font-family: 'Ubuntu', sans-serif;
 }
 
 html {
@@ -18,6 +19,26 @@ body {
 .matrix-canvas {
   image-rendering: -moz-crisp-edges;
   image-rendering: pixelated;
+}
+
+#hints {
+  background-color: #222;
+  color: #eee;
+  padding: 10px;
+  font-size: larger;
+}
+
+#hints a {
+  color: #8ffdff;
+  transition: all 0.2s;
+}
+
+#hints a:visited {
+  color: #cda1ff;
+}
+
+#hints a:hover {
+  text-shadow: 0px 0px 2px #eee;
 }
 
 #main-container {
@@ -85,7 +106,6 @@ body {
   justify-content: left;
   align-items: center;
   padding: 5px;
-  font-family: Arial, Helvetica, sans-serif;
   color: #eee;
   text-shadow: 0px 0px 4px black;
   width: 100%;
