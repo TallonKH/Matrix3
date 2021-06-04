@@ -712,7 +712,7 @@ standardBlockTypes.push(new BlockType({
 standardBlockTypes.push(new BlockType({
   name: "Lava",
   color: Color.fromHex("#ff3500"),
-  emission: Color.fromHex("#ffd0a3"),
+  emission: Color.fromHex("#ffa561"),
   densityFunc: densityConstant(150),
   numbers: [["acid-resistance", 0.9]],
   tags: ["fluid", "liquid", "unbreathable", "falling", "unstable", "stone-based", "hot", "boiler", "melter"],
